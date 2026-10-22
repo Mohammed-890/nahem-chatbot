@@ -104,7 +104,7 @@ button:focus-visible, a:focus-visible { outline:3px solid var(--o); outline-offs
 <div class="caption" id="caption" role="status" aria-live="polite" hidden></div>
 
 <script>
-  const SAMPLES = ["ساعدني أطلب", "وش تنصحني؟", "احنا 9 أشخاص وش نطلب؟", "عندي 25 ريال", "عندكم شي حار؟", "كم سعرات الزنجر؟", "عندكم بيتزا؟", "أضف بوكس البرجر", "what do u reccomend", "is the burger beef or chicken?"];
+  const SAMPLES = ["Help me order", "What do you recommend?", "We are 9 people", "I only have 25 riyals", "Anything spicy?", "Calories in the zinger?", "Do you have pizza?", "Add a Burger Box", "what do u reccomeed", "وش تنصحني؟"];
   const tryBox = document.getElementById("try");
   for (const q of SAMPLES) {
     const b = document.createElement("button");
@@ -116,22 +116,22 @@ button:focus-visible, a:focus-visible { outline:3px solid var(--o); outline-offs
 
   /* the guided tour: real questions typed into the real chatbot, one feature at a time */
   const TOUR = [
-    { cap: "Arabic by default. Ask it what it can do", ask: "وش تقدر تسوي؟" },
-    { cap: "Recommendations based on the time of day in Madinah", ask: "وش تنصحني؟" },
-    { cap: "Guided ordering: group size, then taste", ask: "ساعدني أطلب" },
+    { cap: "Ask it what it can do", ask: "What can you do?" },
+    { cap: "Recommendations based on the time of day in Madinah", ask: "What do you recommend?" },
+    { cap: "Guided ordering: group size, then taste", ask: "Help me order" },
     { cap: "Guided ordering: 3 people…", ask: "3" },
-    { cap: "…a mix of chicken and beef, with a ready basket", ask: "منوّع 🤝" },
+    { cap: "…a mix of chicken and beef, with a ready basket", ask: "A mix 🤝" },
     { cap: "One tap adds the whole suggestion to the order", action: true },
-    { cap: "Group planner with per-person prices", ask: "احنا 9 أشخاص وش نطلب؟" },
-    { cap: "Formal Arabic and budgets: \"I only have 50 riyals\"", ask: "أريد أن أطلب، لكن لا أملك سوى 50 ريالًا" },
-    { cap: "Taste filters: something spicy", ask: "عندكم شي حار؟" },
-    { cap: "Exact calories from the printed menu", ask: "كم سعرات الزنجر؟" },
-    { cap: "Honest about what is not on the menu", ask: "عندكم بيتزا؟" },
-    { cap: "Order by typing: \"add 2 karak\"", ask: "ابي 2 كرك" },
-    { cap: "The basket: pick a branch, send the order on WhatsApp", ask: "سلتي", branch: true },
-    { cap: "Switches to English on request", ask: "speak english" },
+    { cap: "Group planner with per-person prices", ask: "We are 9 people, what should we order?" },
+    { cap: "Budget planner: the best meal for 50 riyals", ask: "I only have 50 riyals" },
+    { cap: "Taste filters: something spicy", ask: "Anything spicy?" },
+    { cap: "Exact calories from the printed menu", ask: "How many calories in the zinger?" },
+    { cap: "Honest about what is not on the menu", ask: "Do you have pizza?" },
+    { cap: "Order by typing: \"add 2 karak\"", ask: "Add 2 karak" },
+    { cap: "The basket: pick a branch, send the order on WhatsApp", ask: "My cart", branch: true },
     { cap: "Understands typos: \"what do u reccomeed\"", ask: "what do u reccomeed" },
-    { cap: "Follow-up questions keep context", ask: "is the burger beef or chicken?" }
+    { cap: "Arabic-first: switches to Arabic on request", ask: "تكلم عربي" },
+    { cap: "Saudi dialect: \"we're 6, what should we order?\"", ask: "احنا 6 وش نطلب؟" }
   ];
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const shadow = () => document.getElementById("nahem-chat").shadowRoot;
@@ -139,7 +139,7 @@ button:focus-visible, a:focus-visible { outline:3px solid var(--o); outline-offs
   play.onclick = async () => {
     if (!window.NahemChat) return;
     play.disabled = true;
-    NahemChat.setLang("ar"); NahemChat.reset(); NahemChat.open();
+    NahemChat.setLang("en"); NahemChat.reset(); NahemChat.open();
     await sleep(600);
     for (const step of TOUR) {
       cap.hidden = false; cap.textContent = step.cap;
@@ -155,6 +155,6 @@ button:focus-visible, a:focus-visible { outline:3px solid var(--o); outline-offs
   /* open the chat on wide screens; on phones the customer taps "Ask Nahem" */
   window.addEventListener("load", () => setTimeout(() => { if (window.NahemChat && innerWidth >= 1100) NahemChat.open(); }, 400));
 </script>
-<script src="chatbot.js" data-side="right" data-base="https://nahem24.com" data-logo="assets/chat-logo.png" data-thumbs="assets/chat/" defer></script>
+<script src="chatbot.js" data-lang="en" data-side="right" data-base="https://nahem24.com" data-logo="assets/chat-logo.png" data-thumbs="assets/chat/" defer></script>
 </body>
 </html>

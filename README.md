@@ -4,7 +4,7 @@ A bilingual (Arabic / English) customer assistant I built for **[Nahem](https://
 
 **▶ [Live demo with a guided tour](https://mohammed-890.github.io/nahem-chatbot/)**: press *Watch the 60-second tour* and the chatbot demonstrates every feature on its own.
 
-<p align="center"><img src="screenshots/demo-tour.gif" alt="The chatbot's guided tour: recommendations, guided ordering, group planning, calories, a WhatsApp basket and switching to English" width="360"></p>
+<p align="center"><img src="screenshots/demo-tour.gif" alt="The chatbot's guided tour in English: recommendations, guided ordering, group and budget planning, calories, a WhatsApp basket, typos, then switching to Arabic" width="360"></p>
 
 ## The problem
 
