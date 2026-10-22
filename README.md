@@ -25,6 +25,7 @@ Nahem's customers mostly ask the same questions over WhatsApp: *Where are you? A
 | <img src="screenshots/02-recommendations.png" width="300" alt="Recommendations"> | **🍔 Smart recommendations.** Suggestions change with the time of day in Madinah (breakfast, lunch, dinner, late night), plus filters for spicy, chicken, beef, vegetarian, light, kids and desserts, best sellers, cheapest and most filling. |
 | <img src="screenshots/05-calories.png" width="300" alt="Calories"> | **🔥 Calories & honest answers.** Exact calories read from the printed menu ("under 400 calories" works too). For facts that aren't published (allergens, payment methods, fat, protein), it says so and hands over to WhatsApp instead of guessing. |
 | <img src="screenshots/07-english-typos.png" width="300" alt="English with typos"> | **✍️ Typos, dialects and English.** Understands "what do u reccomeed", "الفروووع", Gulf dialect, formal Arabic ("لا أملك سوى 50 ريالًا") and English, and switches language on request. |
+| | **🧮 Smarter conversations.** Two questions in one message ("where are you and when do you open?") get one combined answer. "How much for 2 burger boxes and 3 fries?" works out the total. "Surprise me" picks a meal for the time of day, "is the zinger any good?" gets an honest recommendation, and "one more" adds another of the last item. |
 | <img src="screenshots/09-dark-mode.png" width="300" alt="Dark mode"> | **🎙️ Voice, photos and dark mode.** Speak in Arabic or English, food photos on every item card, follows the visitor's dark mode, full screen on phones, sits above the site's own mobile bar. |
 
 ### On the restaurant's website
@@ -62,7 +63,7 @@ flowchart LR
 
 ## Testing
 
-I tested the engine against **380+ customer-style questions**: Saudi dialect, formal Arabic and English, with typos, follow-ups and edge cases. Each change was regression-diffed: every answer before and after was compared, so a fix in one place couldn't silently break another. The UI was tested end to end in headless Chromium: ordering, WhatsApp message contents, persistence across pages, voice input (with a simulated speech engine) and the mobile layout.
+I tested the engine against **400+ customer-style questions**: Saudi dialect, formal Arabic and English, with typos, follow-ups and edge cases. Each change was regression-diffed: every answer before and after was compared, so a fix in one place couldn't silently break another. The UI was tested end to end in headless Chromium: ordering, WhatsApp message contents, persistence across pages, voice input (with a simulated speech engine) and the mobile layout.
 
 ## Project structure
 

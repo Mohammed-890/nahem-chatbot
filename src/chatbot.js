@@ -267,6 +267,7 @@
     var scored = all.filter(function (x) { return x.s >= 0.5; });
     scored.sort(function (a, b) { return b.s - a.s; });
     var list = [];
+    list.weak = all.slice(0, 4).map(function (x) { return x.i; });
     if (scored.length) {
       var top = scored[0].s;
       list = scored.filter(function (x) { return x.s >= top - 0.01 || x.s >= 0.99; }).slice(0, 6).map(function (x) { return x.i; });
@@ -275,6 +276,7 @@
       list.second = scored[1] && scored[1].s >= 0.6 ? scored[1].i : null;
       list.near = all.slice(1).map(function (x) { return x.i; });
     }
+    if (!list.weak) list.weak = all.slice(0, 4).map(function (x) { return x.i; });
     return list;
   }
   function byNames(d, names) {
@@ -297,8 +299,8 @@
     var m = q.match(new RegExp('(\\d+)\\s*' + PEOPLE));
     if (m) return Math.min(999, Number(m[1]));
     var m2 = q.match(/(^|\s)(و)?(نحن|احنا|حنا|we are|we re|for|family of|party of|group of|عايله|عائله|عيله)\s*(من)?\s*(\d+)($|\s)(\S*)/);
-    if (m2) m2 = [m2[0], '', '', m2[5], '', m2[7]];
-    if (m2 && !MONEY.test(m2[5] || '')) return Math.min(999, Number(m2[3]));
+    if (m2) m2 = [m2[0], '', '', m2[5], m2[3], m2[7]];
+    if (m2 && !MONEY.test(m2[5] || '') && !(m2[4] === 'for' && m2[5] && !new RegExp('^' + PEOPLE).test(m2[5]))) return Math.min(999, Number(m2[3]));
     var w = q.match(new RegExp('(^|\\s)([^\\s]+)\\s*' + PEOPLE));
     if (w && NUMWORDS[w[2]] != null) return NUMWORDS[w[2]];
     var w2 = q.match(/(^|\s)(نحن|احنا|حنا|we are|for)\s+([^\s]+)/);
@@ -339,7 +341,31 @@
 
   var CTX = { last: [], topic: null };   /* remembers the last items for follow-ups ("كم سعره؟", "و 10؟") */
 
+  /* Two questions in one message ("وين فروعكم ومتى تفتحون؟", "are you open? where are you?") get both answers. */
+  var QSTART = '(متي|وين|كم|بكم|هل|ايش|وش|كيف|فيه|عندكم|تفتحون|تقفلون|اين|ما هو|ما هي|where|when|how|do you|are you|is there|what)';
   function answer(raw, lang) {
+    var whole = answerOne(raw, lang);
+    var n = norm(raw);
+    var parts = String(raw).split(/[؟?]+|\n+/).map(function (x) { return x.trim(); }).filter(function (x) { return norm(x).split(' ').length >= 2; });
+    if (parts.length < 2) {
+      var m = n.match(new RegExp('^(.{6,}?)\\s+و' + QSTART + '(\\s.*)?$'));
+      if (m && !/\d/.test(n)) parts = [m[1], m[2] + (m[3] || '')];
+    }
+    if (parts.length < 2 || parts.length > 3 || whole.addToCart || whole.showCart || whole.switchLang) return whole;
+    var saved = { last: CTX.last, topic: CTX.topic };
+    var rs = parts.map(function (part) { return answerOne(part, lang); });
+    var good = rs.filter(function (r) { return !r.fallback && !r.addToCart && !r.clearCart && !r.removeFromCart && !r.switchLang; });
+    var distinct = good.filter(function (r, i) { return good.findIndex(function (o) { return o.text === r.text; }) === i; });
+    if (distinct.length < 2) { CTX.last = saved.last; CTX.topic = saved.topic; return whole; }
+    var seen = {}, buttons = [], cards = [];
+    distinct.forEach(function (r) {
+      (r.buttons || []).forEach(function (b) { if (!seen[b.href]) { seen[b.href] = 1; buttons.push(b); } });
+      (r.cards || []).forEach(function (c) { if (cards.length < 4 && cards.indexOf(c) === -1) cards.push(c); });
+    });
+    var last = distinct[distinct.length - 1];
+    return { text: distinct.map(function (r) { return r.text; }).join('\n\n'), cards: cards, buttons: buttons.slice(0, 4), chips: last.chips, actions: last.actions, topic: last.topic, lang: lang };
+  }
+  function answerOne(raw, lang) {
     var X = function (ar, en) { return lang === 'en' ? en : ar; };
     var d = liveData(), s = d.settings, q = norm(raw);
     var N = function (i) { return lang === 'en' ? i.en : i.ar; };
@@ -374,7 +400,7 @@
       return R({ text: X('تمام 👌 تبغى شي ثاني؟', 'Great 👌 Anything else?'), chips: X(['وش تنصحني؟', 'عرض الطلب', 'وين فروعكم؟'], ['Recommend something', 'View order', 'Where are you?']) });
     if (/^(لا|لا شكرا|لا مشكور|no|nope|nah|no thanks|no thank you|not now)$/.test(q))
       return R({ text: X('ولا يهمك، أنا هنا إذا احتجت أي شي 🧡', "No problem, I'm here if you need anything 🧡") });
-    if (has(q, ['كيفك', 'كيف حالك', 'شلونك', 'علومك', 'how are you', 'how r u', 'hows it going']))
+    if (has(q, ['كيفك', 'كيف حالك', 'كيف الحال', 'شلونك', 'علومك', 'اخبارك', 'how are you', 'how r u', 'hows it going']))
       return R({ text: X('الحمدلله بخير 😊 وأنت؟ جوعان؟ قل لي وش تحب وأقترح لك.', "I'm great, thanks 😊 Hungry? Tell me what you like and I'll suggest something."), chips: X(['وش تنصحني؟', 'شي دجاج', 'شي لحم'], ['Recommend something', 'Chicken', 'Beef']) });
     if (has(q, ['شكرا', 'مشكور', 'يعطيك العافيه', 'تسلم', 'جزاك الله', 'الله يسعدك', 'ما قصرت', 'thanks', 'thank you', 'thx', 'appreciate it']))
       return R({ text: X('العفو، بالعافية مقدمًا 😋 إذا احتجت أي شيء ثاني أنا هنا.', "You're welcome, enjoy your meal 😋 I'm here if you need anything else.") });
@@ -447,6 +473,22 @@
     if (people >= 2) return groupPlan(d, people, money, X, N, SAR, B, R, breakfast);
     if (people === 1 && !money) return recommend(d, X, B, R, popular, X('لشخص واحد، هذي أفضل اختياراتي 👇', 'For one person, these are my top picks 👇'));
 
+    /* ---------------- "pick for me" ---------------- */
+    if (has(q, ['فاجئني', 'فاجيني', 'اختار لي', 'اختر لي', 'اختارلي', 'انت اختار', 'على ذوقك', 'عشوائي', 'surprise me', 'pick for me', 'choose for me', 'you choose', 'you pick', 'random', 'pick again']))
+      return surprise(d, X, N, B, R);
+    /* ---------------- "one more of it" ---------------- */
+    if (CTX.last.length && has(q, ['زيده واحد', 'زيدني واحد', 'واحد ثاني', 'كمان واحد', 'واحد زياده', 'نفسه مره ثانيه', 'one more', 'another one', 'add another', 'same again']) && !found.length)
+      return R({ text: X('تمت إضافة 1 × ' + N(CTX.last[0]) + ' لطلبك ✅', 'Added 1 × ' + N(CTX.last[0]) + ' to your order ✅'), addToCart: [[1, CTX.last[0]]], showCart: true });
+    /* ---------------- "what do you think of the zinger?" ---------------- */
+    var opinion = has(q, ['رايك', 'رايكم', 'وش رايك', 'ايش رايك', 'يستاهل', 'حلو', 'زين', 'لذيذ', 'طعمه', 'opinion', 'any good', 'is it good', 'worth it', 'how is the', 'hows the']) && !has(q, ['سعر', '=كم', 'بكم', 'price', 'how much']);
+    if (opinion && found.length && (found.exact || found.length === 1) && !has(q, ['اكل', 'اكلكم', 'الاكل', 'food', 'restaurant'])) {
+      var op = found[0], pop = popular.indexOf(op) !== -1 || / popular /.test(' ' + (op.tags || '') + ' '), kc = kcalOf(op);
+      CTX.last = [op];
+      return R({ text: X((pop ? N(op) + ' من الأكثر طلبًا عندنا 🏆 ' : N(op) + ' من الأصناف اللي يحبها عملاؤنا 😋 ') + 'وعملاؤنا يقيّمون نهم ' + s.rating + ' من 5 على Google.\n' + op.dAr + ' — ' + op.price + ' ريال' + (kc && kc.n ? ' · ' + (kc.est ? 'نحو ' : '') + kc.n + ' سعرة' : '') + '.\nجرّبه وقل لي رأيك!',
+        (pop ? N(op) + ' is one of our best sellers 🏆 ' : 'Customers love the ' + N(op) + ' 😋 ') + 'and Nahem is rated ' + s.rating + ' / 5 on Google.\n' + op.dEn + ' — ' + op.price + ' SAR' + (kc && kc.n ? ' · ' + (kc.est ? 'about ' : '') + kc.n + ' kcal' : '') + '.\nGive it a try!'),
+        cards: [op], actions: [{ label: X('أضف للطلب', 'Add to order'), add: [[1, op]] }], buttons: [B.order], chips: pairChips(op, X) });
+    }
+
     /* ---------------- adding to the basket: "ابي 2 زنجر", "3 بوكس برجر و 2 خفايف" ---------------- */
     var addVerb = has(q, ['=اضف', '=ضيف', '=زيد', '=حط', '=ابي', '=ابغي', '=ابغا', '=اريد', '=بطلب', '=عطني', '=بغيت', '=ودي', 'add', 'i want', 'ill have', 'i ll have', 'i will have', 'give me', 'get me', 'ill take', 'i ll take', 'i d like'])
       && !has(q, ['سعر', '=كم', '=بكم', '=وش', '=ايش', 'مكونات', 'اعرف', 'how much', 'price', 'what is', 'whats', 'know']);
@@ -456,6 +498,14 @@
       return ok ? [n || 1, f[0]] : null;
     });
     var picked = segs.filter(Boolean);
+    /* price questions with quantities or several items: "كم سعر 3 زنجر و 2 كرك؟" → the sum, ready to add */
+    var priceAsk = has(q, ['سعر', '=كم', 'بكم', 'المجموع', 'يطلع', 'يكلف', 'how much', 'price', 'cost', 'total']);
+    if (priceAsk && picked.length && picked.length === segs.length && (picked.length >= 2 || qtyIn(q) > 1)) {
+      var sum = picked.reduce(function (t, x) { return t + x[0] * x[1].price; }, 0);
+      CTX.last = picked.map(function (x) { return x[1]; });
+      return R({ text: X('الحساب 🧮\n', 'Here is the total 🧮\n') + picked.map(function (x) { return '• ' + x[0] + ' × ' + N(x[1]) + ' = ' + x[0] * x[1].price + ' ' + SAR; }).join('\n') + X('\nالمجموع: ' + sum + ' ريال', '\nTotal: ' + sum + ' SAR'),
+        cards: picked.map(function (x) { return x[1]; }).slice(0, 3), actions: [{ label: X('أضف الكل للطلب', 'Add all to order'), add: picked }], buttons: [B.order] });
+    }
     if (picked.length && picked.length === segs.length && (addVerb || segs.every(function (x, i) { return qtyIn(q.split(/\s+و\s+|\s+و(?=\d)|\s+and\s+/)[i]); }))) {
       CTX.last = picked.map(function (x) { return x[1]; });
       return R({ text: X('تمت إضافة ', 'Added ') + picked.map(function (x) { return x[0] + ' × ' + N(x[1]); }).join(X(' و', ' and ')) + X(' لطلبك ✅', ' to your order ✅'), addToCart: picked, showCart: true });
@@ -693,7 +743,10 @@
     if (has(q, ['ليش نهم', 'وش يميز', 'يميزكم', 'مميز', 'فريش', 'طازج', 'طازه', 'جوده', 'قصتكم', 'من انتم', 'why nahem', 'fresh', 'quality', 'about you', 'your story', 'special about']))
       return R({ text: X('نهم براند مديني بطعم واضح وسعر يستاهل 🧡\n• خبز بريوش يومي من الفرن\n• صوصات تتحضّر يوميًا\n• لحوم ودجاج طازج\n• مفتوحين 24 ساعة: فطور، غداء، عشاء… أو جوع مفاجئ', 'Nahem is a Madinah brand with bold taste at a fair price 🧡\n• Brioche bread baked daily\n• Sauces made fresh every day\n• Fresh meat and chicken\n• Open 24 hours: breakfast, lunch, dinner… or a sudden craving'), buttons: [B.menu, B.order] });
 
-    /* ---------------- fallback ---------------- */
+    /* ---------------- fallback: offer the closest menu items when there are any ---------------- */
+    if (found.weak && found.weak.length)
+      return R({ text: X('ما فهمت سؤالك تمامًا 🙏 تقصد واحد من هذي؟', "I didn't quite get that 🙏 Did you mean one of these?"), cards: found.weak.slice(0, 3),
+        chips: found.weak.slice(0, 3).map(function (i) { return N(i); }).concat(X(['وش تقدر تسوي؟'], ['What can you do?'])), buttons: [B.wa], fallback: true });
     return R({ text: X('ما فهمت سؤالك تمامًا 🙏 جرّب تكتبه بطريقة ثانية، أو اختر من هنا. وتقدر تسأل فريقنا على واتساب:', "I didn't quite get that 🙏 Try asking another way, or pick one of these. You can also ask our team on WhatsApp:"),
       chips: X(['وش تقدر تسوي؟', 'وش تنصحني؟', 'المنيو والأسعار', 'وين فروعكم؟', 'العروض', 'كلّم موظف'], ['What can you do?', 'What do you recommend?', 'Menu & prices', 'Where are you?', 'Offers', 'Talk to a person']), buttons: [B.wa], fallback: true });
   }
@@ -734,6 +787,7 @@
   function itemDetail(it, d, X, N, withName, withDesc) {
     var lines = withName ? [N(it) + ' — ' + it.price + ' ' + X('ريال', 'SAR')] : [];
     if (withDesc) lines.push(X(it.dAr, it.dEn));
+    if ((d.popular || []).indexOf(it) !== -1 || / popular /.test(' ' + (it.tags || '') + ' ')) lines.push(X('🏆 من الأكثر طلبًا في نهم', '🏆 One of Nahem\'s best sellers'));
     var tags = ' ' + (it.tags || '') + ' ';
     if (it.cat === 'boxes') lines.push(X('مناسب للمشاركة 👥 قل لي عددكم وأحسب لك كم بوكس تحتاج.', 'Made for sharing 👥 tell me how many you are and I will work out how many boxes you need.'));
     else if (['burger', 'special'].indexOf(it.cat) !== -1 && tags.indexOf(' drink ') === -1) {
@@ -794,6 +848,17 @@
     CTX.last = picks.slice(0, 3);
     return R({ text: (intro || period + X(' هذي اقتراحاتي لك:', ' here are my picks:')) + X('\nوإذا معك ناس، بوكس البرجر (79) يكفي 4 وهو الأكثر طلبًا 🏆', '\nWith friends? The Burger Box (79) feeds 4 and is our best seller 🏆'),
       cards: picks, buttons: [B.order], chips: X(['شي دجاج', 'شي لحم', 'شي حار', 'أرخص شي', 'لمجموعة'], ['Chicken', 'Beef', 'Spicy', 'Cheapest', 'For a group']) });
+  }
+  function surprise(d, X, N, B, R) {
+    var h = riyadhHour();
+    var names = h >= 4 && h < 11 ? ['وجبة الإفطار', 'ساندوتش مليس', 'ساندوتش فاهيتا للفطور'] : h >= 23 || h < 4 ? ['ديناميت دجاج', 'تشكن فرايز', 'ساندوتش بيج نهم'] : ['دبل سماش لحم', 'كومبو نهم', 'برجر دجاج زنجر', 'وجبة نهم', 'راب تويستر', 'ساندوتش بيج نهم'];
+    var pool = byNames(d, names), pick = pool[Math.floor(Math.random() * pool.length)], side = byNames(d, ['حيسة نهم', 'كرك', 'كوكيز نهم'])[Math.floor(Math.random() * 3)];
+    if (!pick) return R({ text: X('جرّب بوكس البرجر 😋', 'Try the Burger Box 😋'), buttons: [B.order] });
+    CTX.last = [pick];
+    var why = / popular /.test(' ' + (pick.tags || '') + ' ') ? X('من الأكثر طلبًا', 'a best seller') : / spicy /.test(' ' + (pick.tags || '') + ' ') ? X('للي يحب الحرارة', 'for a bit of heat') : / filling /.test(' ' + (pick.tags || '') + ' ') ? X('يشبع صدق', 'properly filling') : X('خيار عملائنا المفضل', 'a customer favourite');
+    var parts = [[1, pick]].concat(side ? [[1, side]] : []);
+    return R({ text: X('🎲 اخترت لك: ' + N(pick) + ' (' + why + ')' + (side ? '\nوختامها ' + N(side) + ' 😋' : '') + '\nالمجموع: ' + parts.reduce(function (t, x) { return t + x[1].price; }, 0) + ' ريال', '🎲 I picked: ' + N(pick) + ' (' + why + ')' + (side ? '\nFinish with the ' + N(side) + ' 😋' : '') + '\nTotal: ' + parts.reduce(function (t, x) { return t + x[1].price; }, 0) + ' SAR'),
+      cards: parts.map(function (x) { return x[1]; }), actions: [{ label: X('أضف الاختيار', 'Add my pick'), add: parts }], buttons: [B.order], chips: X(['اختار لي مرة ثانية', 'وش تنصحني؟'], ['Pick again', 'What do you recommend?']) });
   }
   function wizardPlan(d, n, taste, X, N, B, R) {
     var chicken = byNames(d, ['برجر دجاج زنجر'])[0], beef = byNames(d, ['دبل سماش لحم'])[0], meal = byNames(d, ['وجبة نهم'])[0];
