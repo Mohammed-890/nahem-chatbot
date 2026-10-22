@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Nahem Assistant — Live Demo</title>
+<meta name="description" content="A bilingual Arabic/English ordering chatbot built for Nahem, a burger restaurant in Madinah. Live demo with a guided tour of every feature.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one readable column on the left of the page; the real chatbot floats on the right as it would on the restaurant site */
+:root { --bg:#fffaf6; --ink:#1f1a16; --mut:#6f665e; --o:#ff6b1a; --o2:#e4560a; --os:#fff1e8; --line:#efe3d8; --card:#ffffff;
+  --body:"IBM Plex Sans Arabic", system-ui, -apple-system, "Segoe UI", sans-serif; }
+@media (prefers-color-scheme: dark) { :root { --bg:#171310; --ink:#f3ede7; --mut:#b4aaa1; --os:#3a2416; --line:#3a3029; --card:#211b17; color-scheme: dark; } }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--body); font-size:16px; line-height:1.65;
+  padding-left:max(20px, env(safe-area-inset-left, 0px)); padding-right:max(20px, env(safe-area-inset-right, 0px)); padding-block:40px 120px; }
+main { max-width:640px; display:grid; gap:28px; }
+@media (min-width:1100px) { main { margin-left:6vw; } }
+@media (max-width:1099px) { main { margin:0 auto; } }
+.tag { display:inline-block; font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--o2); background:var(--os); border-radius:999px; padding:4px 12px; }
+h1 { font-size:clamp(2rem, 5vw, 3rem); line-height:1.15; margin:10px 0 8px; text-wrap:balance; letter-spacing:-.01em; }
+h1 em { font-style:normal; color:var(--o); }
+.lead { color:var(--mut); margin:0; font-size:17px; }
+.cta { display:flex; flex-wrap:wrap; gap:10px; }
+.cta button, .cta a { font:inherit; font-weight:700; font-size:15px; border-radius:999px; padding:12px 20px; cursor:pointer; text-decoration:none; border:2px solid var(--o); }
+.cta .play { background:var(--o); color:#fff; }
+.cta .play:disabled { opacity:.6; cursor:default; }
+.cta .ghost { background:transparent; color:var(--o2); }
+h2 { font-size:20px; margin:0 0 12px; }
+.feats { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; }
+@media (max-width:560px) { .feats { grid-template-columns:1fr; } }
+.feat { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; }
+.feat b { display:block; font-size:15px; }
+.feat span { color:var(--mut); font-size:14px; }
+.try { display:flex; flex-wrap:wrap; gap:8px; }
+.try button { font:inherit; font-size:14px; border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:999px; padding:6px 14px; cursor:pointer; }
+.try button:hover { border-color:var(--o); color:var(--o2); }
+.facts { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; }
+.facts div { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px; text-align:center; }
+.facts b { display:block; font-size:24px; color:var(--o2); font-variant-numeric:tabular-nums; }
+.facts span { font-size:13px; color:var(--mut); }
+ul.tech { margin:0; padding-left:20px; color:var(--mut); }
+ul.tech li { margin:4px 0; }
+footer { color:var(--mut); font-size:14px; }
+.caption { position:fixed; left:50%; transform:translateX(-50%); bottom:calc(20px + env(safe-area-inset-bottom, 0px)); z-index:2147482000; background:#1f1a16; color:#fff; border-radius:999px; padding:10px 18px; font-weight:600; font-size:15px; box-shadow:0 10px 30px rgba(0,0,0,.25); max-width:calc(100vw - 40px); text-align:center; }
+.caption[hidden] { display:none; }
+@media (min-width:1100px) { .caption { left:calc(6vw + 320px); } }
+button:focus-visible, a:focus-visible { outline:3px solid var(--o); outline-offset:2px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <span class="tag">Client project · Chatbot</span>
+    <h1>Nahem Assistant: an <em>Arabic-first</em> ordering chatbot for a Madinah restaurant</h1>
+    <p class="lead">I built this assistant for <a href="https://nahem24.com" target="_blank" rel="noopener">Nahem</a>, a 24-hour burger restaurant with two branches in Madinah. It answers customers in Arabic or English, recommends meals, plans group orders, and turns a conversation into a WhatsApp order. The chatbot on this page is the real one.</p>
+  </header>
+
+  <div class="cta">
+    <button class="play" id="play" type="button">▶ Watch the 60-second tour</button>
+    <button class="ghost" id="tryit" type="button">Try it yourself</button>
+  </div>
+
+  <section class="facts" aria-label="Project in numbers">
+    <div><b>380+</b><span>test questions answered correctly</span></div>
+    <div><b>2</b><span>languages, incl. Saudi dialect &amp; formal Arabic</span></div>
+    <div><b>0</b><span>API cost: runs in the browser</span></div>
+  </section>
+
+  <section>
+    <h2>What it does</h2>
+    <div class="feats">
+      <div class="feat"><b>🧭 Guided ordering</b><span>"Help me order" asks for group size and taste, then builds the basket.</span></div>
+      <div class="feat"><b>🛒 Chat-to-WhatsApp orders</b><span>Add items with + or by typing "add 2 zinger", pick a branch, send in one tap.</span></div>
+      <div class="feat"><b>👥 Group &amp; budget planner</b><span>"We are 9" or "I only have 50 riyals" gives priced options per person.</span></div>
+      <div class="feat"><b>🍔 Smart recommendations</b><span>By time of day in Madinah, taste (spicy, chicken, kids…) and best sellers.</span></div>
+      <div class="feat"><b>🔥 Calories &amp; honesty</b><span>Exact calories from the menu; says "I don't know" instead of inventing facts.</span></div>
+      <div class="feat"><b>✍️ Typo &amp; dialect tolerant</b><span>"reccomeed", "الفروووع", Gulf dialect and formal Arabic all understood.</span></div>
+      <div class="feat"><b>🎙️ Voice, photos, dark mode</b><span>Speak Arabic or English, food photos on every card, works on phones.</span></div>
+      <div class="feat"><b>📈 Learns from customers</b><span>Unanswered questions, 👍/👎 and orders are logged to a Google Sheet.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Try a question</h2>
+    <div class="try" id="try"></div>
+  </section>
+
+  <section>
+    <h2>How it's built</h2>
+    <ul class="tech">
+      <li><b>One drop-in script</b> (vanilla JavaScript, Shadow DOM) added to the restaurant's static site with a single <code>&lt;script&gt;</code> tag.</li>
+      <li><b>Own NLU engine</b>: Arabic normalisation, typo tolerance (Levenshtein + consonant skeletons), intent priorities, follow-up context, entity parsing for quantities, budgets and group sizes.</li>
+      <li><b>Live data</b>: reads prices and branches from the client's admin panel (Google Apps Script CMS), so menu edits reach the bot instantly.</li>
+      <li><b>Optional AI layer</b>: a Google Apps Script backend calls Gemini with the live menu as context; the built-in engine is the fallback.</li>
+      <li><b>Tested</b> with 380+ real-style customer questions, regression-diffed on every change.</li>
+    </ul>
+  </section>
+
+  <footer>Built by Mohammed · Demo uses the restaurant's real menu. WhatsApp order buttons open a real chat, so please don't send test orders.</footer>
+</main>
+
+<div class="caption" id="caption" role="status" aria-live="polite" hidden></div>
+
+<script>
+  const SAMPLES = ["ساعدني أطلب", "وش تنصحني؟", "احنا 9 أشخاص وش نطلب؟", "عندي 25 ريال", "عندكم شي حار؟", "كم سعرات الزنجر؟", "عندكم بيتزا؟", "أضف بوكس البرجر", "what do u reccomend", "is the burger beef or chicken?"];
+  const tryBox = document.getElementById("try");
+  for (const q of SAMPLES) {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = q;
+    b.onclick = () => window.NahemChat && window.NahemChat.ask(q);
+    tryBox.append(b);
+  }
+  document.getElementById("tryit").onclick = () => { if (window.NahemChat) { window.NahemChat.open(); } };
+
+  /* the guided tour: real questions typed into the real chatbot, one feature at a time */
+  const TOUR = [
+    { cap: "Arabic by default. Ask it what it can do", ask: "وش تقدر تسوي؟" },
+    { cap: "Recommendations based on the time of day in Madinah", ask: "وش تنصحني؟" },
+    { cap: "Guided ordering: group size, then taste", ask: "ساعدني أطلب" },
+    { cap: "Guided ordering: 3 people…", ask: "3" },
+    { cap: "…a mix of chicken and beef, with a ready basket", ask: "منوّع 🤝" },
+    { cap: "One tap adds the whole suggestion to the order", action: true },
+    { cap: "Group planner with per-person prices", ask: "احنا 9 أشخاص وش نطلب؟" },
+    { cap: "Formal Arabic and budgets: \"I only have 50 riyals\"", ask: "أريد أن أطلب، لكن لا أملك سوى 50 ريالًا" },
+    { cap: "Taste filters: something spicy", ask: "عندكم شي حار؟" },
+    { cap: "Exact calories from the printed menu", ask: "كم سعرات الزنجر؟" },
+    { cap: "Honest about what is not on the menu", ask: "عندكم بيتزا؟" },
+    { cap: "Order by typing: \"add 2 karak\"", ask: "ابي 2 كرك" },
+    { cap: "The basket: pick a branch, send the order on WhatsApp", ask: "سلتي", branch: true },
+    { cap: "Switches to English on request", ask: "speak english" },
+    { cap: "Understands typos: \"what do u reccomeed\"", ask: "what do u reccomeed" },
+    { cap: "Follow-up questions keep context", ask: "is the burger beef or chicken?" }
+  ];
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const shadow = () => document.getElementById("nahem-chat").shadowRoot;
+  const cap = document.getElementById("caption"), play = document.getElementById("play");
+  play.onclick = async () => {
+    if (!window.NahemChat) return;
+    play.disabled = true;
+    NahemChat.setLang("ar"); NahemChat.reset(); NahemChat.open();
+    await sleep(600);
+    for (const step of TOUR) {
+      cap.hidden = false; cap.textContent = step.cap;
+      if (step.ask) NahemChat.ask(step.ask);
+      if (step.action) { const b = [...shadow().querySelectorAll(".btns button.p")].pop(); if (b) b.click(); }
+      await sleep(step.ask ? 2600 : 1600);
+      if (step.branch) { const brs = shadow().querySelectorAll(".br"); const bt = brs.length && brs[brs.length - 1].querySelector("button"); if (bt) bt.click(); await sleep(1200); }
+    }
+    cap.textContent = "That's the tour. Now try your own questions 👋";
+    await sleep(3500);
+    cap.hidden = true; play.disabled = false;
+  };
+  /* open the chat on wide screens; on phones the customer taps "Ask Nahem" */
+  window.addEventListener("load", () => setTimeout(() => { if (window.NahemChat && innerWidth >= 1100) NahemChat.open(); }, 400));
+</script>
+<script src="chatbot.js" data-side="right" data-base="https://nahem24.com" data-logo="assets/chat-logo.png" data-thumbs="assets/chat/" defer></script>
+</body>
+</html>
