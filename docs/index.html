@@ -60,10 +60,11 @@ button:focus-visible, a:focus-visible { outline:3px solid var(--o); outline-offs
   <div class="cta">
     <button class="play" id="play" type="button">▶ Watch the 60-second tour</button>
     <button class="ghost" id="tryit" type="button">Try it yourself</button>
+    <a class="ghost" href="kiosk.html">🏪 In-store kiosk demo</a>
   </div>
 
   <section class="facts" aria-label="Project in numbers">
-    <div><b>400+</b><span>test questions answered correctly</span></div>
+    <div><b>450+</b><span>test questions answered correctly</span></div>
     <div><b>2</b><span>languages, incl. Saudi dialect &amp; formal Arabic</span></div>
     <div><b>0</b><span>API cost: runs in the browser</span></div>
   </section>
@@ -75,7 +76,10 @@ button:focus-visible, a:focus-visible { outline:3px solid var(--o); outline-offs
       <div class="feat"><b>🛒 Chat-to-WhatsApp orders</b><span>Add items with + or by typing "add 2 zinger", pick a branch, send in one tap.</span></div>
       <div class="feat"><b>👥 Group &amp; budget planner</b><span>"We are 9" or "I only have 50 riyals" gives priced options per person.</span></div>
       <div class="feat"><b>🍔 Smart recommendations</b><span>By time of day in Madinah, taste (spicy, chicken, kids…) and best sellers.</span></div>
-      <div class="feat"><b>🔥 Calories &amp; honesty</b><span>Exact calories from the menu; says "I don't know" instead of inventing facts.</span></div>
+      <div class="feat"><b>🎯 Sells to each customer's needs</b><span>Gym and protein, diet, healthy eating, low sugar or salt, allergies: it asks, then recommends.</span></div>
+      <div class="feat"><b>📊 Full nutrition &amp; allergens</b><span>Calories and their breakdown, protein, fibre, sugar, salt, ingredients, allergens and fullness.</span></div>
+      <div class="feat"><b>📸 Product sheet</b><span>Tap any item: a close-up photo to zoom, the nutrition panel, ingredients and a prep-video slot.</span></div>
+      <div class="feat"><b>🏪 In-store kiosk</b><span>Full screen on a tablet or robot: it talks, listens and hands over a QR order ticket. <a href="kiosk.html">Open the kiosk demo</a>.</span></div>
       <div class="feat"><b>✍️ Typo &amp; dialect tolerant</b><span>"reccomeed", "الفروووع", Gulf dialect and formal Arabic all understood.</span></div>
       <div class="feat"><b>🎙️ Voice, photos, dark mode</b><span>Speak Arabic or English, food photos on every card, works on phones.</span></div>
       <div class="feat"><b>📈 Learns from customers</b><span>Unanswered questions, 👍/👎 and orders are logged to a Google Sheet.</span></div>
@@ -94,7 +98,8 @@ button:focus-visible, a:focus-visible { outline:3px solid var(--o); outline-offs
       <li><b>Own NLU engine</b>: Arabic normalisation, typo tolerance (Levenshtein + consonant skeletons), intent priorities, follow-up context, entity parsing for quantities, budgets and group sizes.</li>
       <li><b>Live data</b>: reads prices and branches from the client's admin panel (Google Apps Script CMS), so menu edits reach the bot instantly.</li>
       <li><b>Optional AI layer</b>: a Google Apps Script backend calls Gemini with the live menu as context; the built-in engine is the fallback.</li>
-      <li><b>Tested</b> with 400+ real-style customer questions, regression-diffed on every change.</li>
+      <li><b>Kiosk mode</b> for the restaurant floor (<a href="kiosk.html">demo</a>): full screen, spoken replies, voice input, a welcome screen, auto-reset between customers and a QR order ticket.</li>
+      <li><b>Tested</b> with 450+ real-style customer questions, regression-diffed on every change.</li>
     </ul>
   </section>
 
@@ -104,7 +109,7 @@ button:focus-visible, a:focus-visible { outline:3px solid var(--o); outline-offs
 <div class="caption" id="caption" role="status" aria-live="polite" hidden></div>
 
 <script>
-  const SAMPLES = ["Help me order", "What do you recommend?", "We are 9 people", "I only have 25 riyals", "Anything spicy?", "Calories in the zinger?", "Do you have pizza?", "Add a Burger Box", "what do u reccomeed", "وش تنصحني؟"];
+  const SAMPLES = ["Help me order", "What do you recommend?", "We are 9 people", "I only have 25 riyals", "Anything spicy?", "I go to the gym", "Nutrition facts for the zinger", "I'm allergic to gluten", "Show me a photo of the zinger", "Do you have pizza?", "Add a Burger Box", "what do u reccomeed", "وش تنصحني؟"];
   const tryBox = document.getElementById("try");
   for (const q of SAMPLES) {
     const b = document.createElement("button");
@@ -125,7 +130,10 @@ button:focus-visible, a:focus-visible { outline:3px solid var(--o); outline-offs
     { cap: "Group planner with per-person prices", ask: "We are 9 people, what should we order?" },
     { cap: "Budget planner: the best meal for 50 riyals", ask: "I only have 50 riyals" },
     { cap: "Taste filters: something spicy", ask: "Anything spicy?" },
-    { cap: "Exact calories from the printed menu", ask: "How many calories in the zinger?" },
+    { cap: "Sells to the customer's goal: high protein for the gym", ask: "I go to the gym, what should I get?" },
+    { cap: "Full nutrition for any item: calories, macros, fibre, sugar, salt", ask: "Nutrition facts for the zinger" },
+    { cap: "The product sheet: close-up photo, nutrition panel, ingredients, allergens", sheet: "Zinger Chicken Burger" },
+    { cap: "Allergies: what to avoid, and safe alternatives", ask: "I'm allergic to gluten" },
     { cap: "Honest about what is not on the menu", ask: "Do you have pizza?" },
     { cap: "Order by typing: \"add 2 karak\"", ask: "Add 2 karak" },
     { cap: "The basket: pick a branch, send the order on WhatsApp", ask: "My cart", branch: true },
@@ -145,6 +153,12 @@ button:focus-visible, a:focus-visible { outline:3px solid var(--o); outline-offs
       cap.hidden = false; cap.textContent = step.cap;
       if (step.ask) NahemChat.ask(step.ask);
       if (step.action) { const b = [...shadow().querySelectorAll(".btns button.p")].pop(); if (b) b.click(); }
+      if (step.sheet) {
+        NahemChat.openItem(step.sheet); await sleep(1700);
+        const body = shadow().querySelector(".sh-body");
+        for (const y of [560, 1000, 99999]) { if (body) body.scrollTo({ top: y, behavior: "smooth" }); await sleep(1500); }
+        const back = shadow().querySelector(".sh-back"); if (back) back.click();
+      }
       await sleep(step.ask ? 2600 : 1600);
       if (step.branch) { const brs = shadow().querySelectorAll(".br"); const bt = brs.length && brs[brs.length - 1].querySelector("button"); if (bt) bt.click(); await sleep(1200); }
     }
@@ -155,6 +169,6 @@ button:focus-visible, a:focus-visible { outline:3px solid var(--o); outline-offs
   /* open the chat on wide screens; on phones the customer taps "Ask Nahem" */
   window.addEventListener("load", () => setTimeout(() => { if (window.NahemChat && innerWidth >= 1100) NahemChat.open(); }, 400));
 </script>
-<script src="chatbot.js" data-lang="en" data-side="right" data-base="https://nahem24.com" data-logo="assets/chat-logo.png" data-thumbs="assets/chat/" defer></script>
+<script src="chatbot.js" charset="utf-8" data-lang="en" data-side="right" data-base="https://nahem24.com" data-logo="assets/chat-logo.png" data-thumbs="assets/chat/" data-photos="assets/photos/" data-demo="true" defer></script>
 </body>
 </html>

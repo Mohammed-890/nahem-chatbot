@@ -22,7 +22,11 @@
     ai: attr('data-ai'),                             /* chatbot server URL; otherwise config.js chatUrl */
     logo: attr('data-logo') || '/assets/chat-logo.png',
     thumbs: attr('data-thumbs') || '/assets/chat/',   /* folder of the 160px food photos */
-    side: attr('data-side')                           /* 'left' or 'right' to pin the chat; default follows the language */
+    side: attr('data-side'),                          /* 'left' or 'right' to pin the chat; default follows the language */
+    photos: attr('data-photos') || (attr('data-base') || '') + '/assets/',   /* folder of the full-size food photos */
+    kiosk: attr('data-kiosk') === 'true',             /* full-screen in-store assistant (see kiosk.html) */
+    branch: attr('data-branch') || '',                /* kiosk: the branch it stands in, e.g. 'qaswa' */
+    demo: attr('data-demo') === 'true'                /* demo pages: show where the preparation videos will go */
   };
 
   /* ================================================================
@@ -53,6 +57,101 @@
     if (!i || !i.img) return '';
     return /^(https?:|\/|data:)/.test(i.img) ? i.img : OPT.thumbs + i.img + '.webp';
   }
+  /* the full-size photo for the product sheet and zoom (the site's own menu photos) */
+  function bigPhoto(i) {
+    if (!i || !i.img) return '';
+    return /^(https?:|\/|data:)/.test(i.img) ? i.img : OPT.photos + i.img + '.webp';
+  }
+
+  /* Nutrition per item: [protein g, carbs g, fat g, fibre g, sugar g, sodium mg].
+     ESTIMATES for the demo, built from typical recipes and matched to the calories above.
+     Replace them with the kitchen's lab figures before going live, then set NUTRITION_EST to false. */
+  var NUTRITION_EST = true;
+  var NUTRITION = {
+    'دبل سماش لحم': [30, 38, 24, 2, 7, 980], 'دبل سماش دجاج': [34, 52, 29, 3, 7, 1250], 'برجر دجاج زنجر': [28, 58, 29, 3, 6, 1300],
+    'ديناميت دجاج': [18, 48, 24, 4, 3, 1100], 'وجبة استربس': [42, 95, 44, 7, 6, 2100], 'وجبة نهم': [40, 125, 48, 6, 40, 2000],
+    'كومبو نهم': [52, 160, 60, 8, 45, 2700], 'ساندوتش بيج نهم': [24, 40, 20, 2, 6, 1050], 'ساندوتش دجاج فاهيتا': [22, 36, 12, 3, 6, 820],
+    'راب تويستر': [24, 46, 22, 3, 4, 1150], 'راب دونر تركي': [22, 34, 15, 2, 3, 900], 'تشكن فرايز': [26, 62, 33, 5, 3, 1400],
+    'ساندوتش بيض': [15, 30, 18, 1, 5, 560], 'ساندوتش تونة': [17, 30, 11, 2, 4, 620], 'ساندوتش فاهيتا للفطور': [18, 32, 11, 2, 5, 700],
+    'ساندوتش فلافل': [11, 44, 16, 7, 4, 720], 'ساندوتش جبنتين': [12, 28, 16, 1, 4, 720], 'ساندوتش مليس': [14, 29, 19, 1, 4, 760],
+    'وجبة الإفطار': [28, 74, 32, 3, 18, 1350], 'بوكس الخفايف': [100, 250, 110, 14, 30, 5200], 'بوكس البرجر': [140, 300, 158, 20, 35, 6800],
+    'بطاطس': [4, 41, 16, 4, 0, 250], 'سلطة ملفوف': [1, 12, 11, 2, 9, 220], 'سلطة سيزر': [22, 12, 24, 3, 3, 800],
+    'كوكيز نهم': [5, 52, 18, 2, 30, 260], 'حيسة نهم': [7, 62, 23, 2, 40, 180], 'عرض الحلى': [6, 85, 22, 2, 65, 220],
+    'مشروب غازي': [0, 36, 0, 0, 36, 30], 'ماء': [0, 0, 0, 0, 0, 5], 'كرك': [4, 22, 5, 0, 20, 60], 'شاي': [0, 15, 0, 0, 15, 5],
+    'قهوة سعودية': [0, 1, 0, 0, 0, 2], 'الصوصات': [0, 3, 10, 0, 2, 220]
+  };
+  /* Allergens (the 14 most common, as on Saudi and EU food labels) and the standard-recipe ingredients that carry them.
+     Built from the menu descriptions: the kitchen must confirm every line before going live. */
+  var ALLERGENS = {
+    gluten: ['جلوتين (قمح)', 'Gluten (wheat)', '🌾', ['جلوتين', 'قلوتين', 'غلوتين', 'القمح', 'قمح', 'سيلياك', 'gluten', 'wheat', 'celiac', 'coeliac']],
+    dairy: ['الحليب ومشتقاته', 'Milk / dairy', '🥛', ['لاكتوز', 'الالبان', 'البان', 'الحليب', 'حليب', 'اجبان', 'lactose', 'dairy', 'milk']],
+    egg: ['البيض', 'Egg', '🥚', ['البيض', 'بيض', '=egg', 'eggs']],
+    sesame: ['السمسم', 'Sesame', '⚪', ['سمسم', 'السمسم', 'طحينه', 'sesame', 'tahini']],
+    fish: ['السمك', 'Fish', '🐟', ['=السمك', '=سمك', '=fish', 'seafood', 'بحريات']],
+    soy: ['الصويا', 'Soy', '🫘', ['صويا', 'الصويا', '=soy', 'soya']],
+    mustard: ['الخردل', 'Mustard', '🟡', ['خردل', 'الخردل', 'mustard']],
+    nuts: ['المكسرات والفول السوداني', 'Nuts & peanuts', '🥜', ['مكسرات', 'المكسرات', 'فول سوداني', 'الفول السوداني', 'لوز', 'nuts', 'nut', 'peanut', 'peanuts', 'almond']]
+  };
+  var ING = {
+    brioche: ['خبز بريوش', 'Brioche bun', 'gluten egg dairy'], bread: ['خبز', 'Bread', 'gluten'], tortilla: ['خبز تورتيلا', 'Tortilla wrap', 'gluten'],
+    beef: ['لحم بقري طازج', 'Fresh beef', ''], chicken: ['دجاج طازج', 'Fresh chicken', ''], breaded: ['دجاج مقرمش مغطى بالطحين والبهارات', 'Crispy breaded chicken', 'gluten'],
+    doner: ['شرائح لحم متبلة', 'Seasoned beef slices', ''], cheese: ['جبن', 'Cheese', 'dairy'], melt: ['جبنة سائحة', 'Melted cheese', 'dairy'],
+    sauce: ['صوص نهم الخاص (أساسه مايونيز)', 'Nahem house sauce (mayo-based)', 'egg mustard'], mayo: ['مايونيز', 'Mayonnaise', 'egg'],
+    lettuce: ['خس', 'Lettuce', ''], veg: ['خضار طازجة', 'Fresh vegetables', ''], peppers: ['فلفل ألوان', 'Bell peppers', ''], fajita: ['تتبيلة فاهيتا', 'Fajita seasoning', ''],
+    jalapeno: ['هلابينو', 'Jalapeño', ''], fries: ['بطاطس مقلية', 'Fries', ''], egg: ['بيض طازج', 'Fresh egg', 'egg'], tuna: ['تونة', 'Tuna', 'fish'],
+    falafel: ['فلافل (حمص وأعشاب)', 'Falafel (chickpeas and herbs)', ''], tahini: ['صوص طحينة', 'Tahini sauce', 'sesame'],
+    slaw: ['ملفوف وجزر بصوص الكول سلو', 'Cabbage and carrot in coleslaw dressing', 'egg'], caesar: ['صوص سيزر', 'Caesar dressing', 'egg fish dairy'],
+    parmesan: ['جبنة بارميزان', 'Parmesan', 'dairy'], cookie: ['عجينة كوكيز (طحين، زبدة، بيض، سكر)', 'Cookie dough (flour, butter, egg, sugar)', 'gluten dairy egg'],
+    chocolate: ['شوكولاتة', 'Chocolate', 'dairy soy'], heisa: ['حيسة مدينية (تفاصيل الوصفة عند مطبخ نهم)', 'Madinah heisa (full recipe from the Nahem kitchen)', 'gluten dairy'],
+    soda: ['مشروب غازي من اختيارك', 'A soft drink of your choice', ''], water: ['مياه معدنية', 'Mineral water', ''], tea: ['شاي', 'Tea', ''], milk: ['حليب', 'Milk', 'dairy'],
+    sugar: ['سكر', 'Sugar', ''], cardamom: ['هيل', 'Cardamom', ''], coffee: ['قهوة عربية', 'Arabic coffee', ''],
+    garlic: ['صوص ثوم', 'Garlic sauce', 'egg'], hot: ['صوص حراق', 'Spicy sauce', ''], cocktail: ['صوص كوكتيل', 'Cocktail sauce', 'egg mustard']
+  };
+  /* the standard recipe; items marked choice depend on what the customer picks inside them */
+  var RECIPE = {
+    'دبل سماش لحم': 'brioche beef cheese sauce fries', 'دبل سماش دجاج': 'brioche chicken cheese sauce fries', 'برجر دجاج زنجر': 'brioche breaded lettuce cheese sauce fries',
+    'ديناميت دجاج': 'fries breaded sauce jalapeno', 'وجبة استربس': 'breaded bread fries garlic', 'وجبة نهم': 'brioche breaded cheese sauce fries soda',
+    'كومبو نهم': 'brioche breaded beef cheese sauce fries soda', 'ساندوتش بيج نهم': 'brioche breaded sauce cheese', 'ساندوتش دجاج فاهيتا': 'brioche chicken fajita peppers sauce',
+    'راب تويستر': 'tortilla breaded lettuce sauce', 'راب دونر تركي': 'bread doner veg sauce', 'تشكن فرايز': 'fries breaded sauce',
+    'ساندوتش بيض': 'brioche egg sauce', 'ساندوتش تونة': 'brioche tuna mayo veg', 'ساندوتش فاهيتا للفطور': 'brioche chicken fajita sauce',
+    'ساندوتش فلافل': 'bread falafel veg tahini', 'ساندوتش جبنتين': 'brioche cheese melt', 'ساندوتش مليس': 'brioche egg melt',
+    'وجبة الإفطار': 'brioche egg cheese tea sugar', 'بوكس الخفايف': 'brioche breaded egg cheese tahini sauce', 'بوكس البرجر': 'brioche beef breaded cheese sauce fries slaw garlic',
+    'بطاطس': 'fries', 'سلطة ملفوف': 'slaw', 'سلطة سيزر': 'lettuce chicken caesar parmesan', 'كوكيز نهم': 'cookie chocolate', 'حيسة نهم': 'heisa',
+    'عرض الحلى': 'heisa cookie chocolate soda', 'مشروب غازي': 'soda', 'ماء': 'water', 'كرك': 'tea milk sugar cardamom', 'شاي': 'tea sugar',
+    'قهوة سعودية': 'coffee cardamom', 'الصوصات': 'garlic hot cocktail caesar'
+  };
+  var CHOICE = ['وجبة نهم', 'كومبو نهم', 'وجبة الإفطار', 'بوكس الخفايف', 'بوكس البرجر', 'عرض الحلى', 'الصوصات'];
+  /* Close-up media per item. Add the restaurant's preparation videos here (an .mp4 link, or a YouTube link),
+     e.g. 'برجر دجاج زنجر': { video: 'https://…/zinger.mp4' }. Items without a video show the photo only. */
+  var MEDIA = {};
+  /* reference daily values for an adult (2000 kcal), as used on Saudi food labels */
+  var DV = { kcal: 2000, p: 50, c: 275, f: 78, fib: 28, sug: 50, na: 2300 };
+  function nutri(i) {
+    var n = i && NUTRITION[i.ar], c = kcalOf(i);
+    if (!n || !c) return null;
+    return { kcal: c.n, kcalEst: c.est, p: n[0], c: n[1], f: n[2], fib: n[3], sug: n[4], na: n[5], salt: Math.round(n[5] * 2.5 / 100) / 10, est: NUTRITION_EST };
+  }
+  function allergensOf(i) {
+    var r = i && RECIPE[i.ar], set = [];
+    if (!r) return null;
+    r.split(' ').forEach(function (k) { (ING[k] ? ING[k][2] : '').split(' ').filter(Boolean).forEach(function (a) { if (set.indexOf(a) === -1) set.push(a); }); });
+    return set;
+  }
+  function ingredientsOf(i, lang) {
+    var r = i && RECIPE[i.ar];
+    if (!r) return null;
+    return r.split(' ').filter(function (k) { return ING[k]; }).map(function (k) { return ING[k][lang === 'en' ? 1 : 0]; });
+  }
+  /* how filling an item is, 1 (a snack) to 5 (a big meal); sharing boxes and drinks have none */
+  function fullness(i) {
+    var n = nutri(i);
+    if (!n || ['boxes', 'drinks', 'sauces'].indexOf(i.cat) !== -1 || / sweet /.test(' ' + (i.tags || '') + ' ') || n.kcal < 100) return 0;
+    return Math.max(1, Math.min(5, Math.round(n.kcal / 300 + (n.p + n.fib) / 25)));
+  }
+  var FULL = {
+    ar: ['', 'خفيف (سناك)', 'وجبة خفيفة', 'يشبع', 'يشبع كثير', 'وجبة كبيرة تشبع جدًا'],
+    en: ['', 'A light snack', 'A light meal', 'Satisfying', 'Very filling', 'A big, very filling meal']
+  };
 
   var DATA = {
     settings: {
@@ -430,7 +529,7 @@
 
     /* what the assistant can do */
     if (has(q, ['وش تقدر تسوي', 'وش تسوي', 'ايش تقدر', 'وش تقدر', 'كيف استخدمك', 'كيف اتعامل معك', 'كيف تشتغل', 'ساعدني', 'مساعده', 'وش اسالك', '=help', 'what can you do', 'what can u do', 'what do you do', 'how does this work', 'how do you work', 'how can you help', 'what can i ask', 'can you help', 'help me', 'what is this chatbot', 'what is this']))
-      return R({ text: X('أقدر أساعدك في كل شي يخص نهم 😊\n• أقترح لك وجبة حسب وقتك وذوقك وميزانيتك\n• أوريك المنيو والأسعار مع الصور\n• أحسب طلب لمجموعة أو مناسبة\n• أجهّز طلبك هنا (اضغط + على أي صنف) وترسله لنا على واتساب\n• الفروع والخرائط وساعات العمل\n• العروض وكود التطبيق وعرض الشركات\n• الشكاوى، وأوصلك بفريقنا\nجرّب تكتب: «احنا 6 أشخاص» أو «عندي 25 ريال» أو «أضف بوكس البرجر».', 'I can help with anything about Nahem 😊\n• Suggest a meal for your time, taste and budget\n• Show the menu and prices with photos\n• Plan an order for a group or event\n• Build your order here (tap + on any item) and send it to us on WhatsApp\n• Branches, maps and opening hours\n• Offers, the app code and the company offer\n• Complaints, and connecting you to our team\nTry: "we are 6 people", "I have 25 SAR" or "add a Burger Box".'),
+      return R({ text: X('أقدر أساعدك في كل شي يخص نهم 😊\n• أقترح لك وجبة حسب وقتك وذوقك وميزانيتك\n• أختار لك حسب هدفك: بروتين للجيم، دايت، أكل صحي، أو حساسية من مكوّن\n• القيم الغذائية الكاملة والمكونات، وصورة أي صنف عن قرب\n• أوريك المنيو والأسعار مع الصور\n• أحسب طلب لمجموعة أو مناسبة\n• أجهّز طلبك هنا (اضغط + على أي صنف) وترسله لنا على واتساب\n• الفروع والخرائط وساعات العمل\n• العروض وكود التطبيق وعرض الشركات\n• الشكاوى، وأوصلك بفريقنا\nجرّب تكتب: «احنا 6 أشخاص» أو «عندي 25 ريال» أو «أضف بوكس البرجر».', 'I can help with anything about Nahem 😊\n• Suggest a meal for your time, taste and budget\n• Match your goal: high protein for the gym, a diet, healthy eating, or an allergy\n• Full nutrition facts and ingredients, and a close-up photo of any item\n• Show the menu and prices with photos\n• Plan an order for a group or event\n• Build your order here (tap + on any item) and send it to us on WhatsApp\n• Branches, maps and opening hours\n• Offers, the app code and the company offer\n• Complaints, and connecting you to our team\nTry: "we are 6 people", "I have 25 SAR" or "add a Burger Box".'),
         chips: X(['وش تنصحني؟', 'احنا 6 أشخاص', 'عندي 25 ريال', 'أضف بوكس البرجر'], ['What do you recommend?', 'We are 6 people', 'I have 25 SAR', 'Add a Burger Box']) });
     if (has(q, ['مين انت', 'من انت', 'وش انت', 'انت بوت', 'انت روبوت', 'انت انسان', 'ذكاء اصطناعي', 'اسمك', 'who are you', 'are you a bot', 'are you human', 'your name', 'are you real', 'chatgpt', '=gpt', '=ai', 'robot']))
       return R({ text: X('أنا مساعد نهم الآلي 🤖 أرد فورًا على أسئلتك عن المنيو والأسعار والفروع، وأجهّز طلبك. وإذا تبغى تكلم موظف، فريقنا موجود على واتساب.', "I'm Nahem's automated assistant 🤖 I answer instantly about the menu, prices and branches, and I can build your order. To talk to a person, our team is on WhatsApp."), buttons: [B.wa] });
@@ -465,6 +564,254 @@
       return R({ text: X('حيّاك في فريق نهم 💪\nأرسل سيرتك الذاتية على البريد: ' + s.careersEmail + '\nواكتب في العنوان الوظيفة اللي تبغاها.', 'Join the Nahem team 💪\nEmail your CV to ' + s.careersEmail + ' and put the role you want in the subject.') });
     if (has(q, ['شركه', 'شركات', 'شركتي', 'شركتنا', 'موظفين', 'موظفينا', 'خصم للموظفين', 'company', 'companies', 'corporate', 'employees', 'office', 'staff']) && !peopleCount(q))
       return R({ text: X('برنامج نهم للشركات 🏢\n• خصم ' + s.companiesDiscount + '% لكل موظفي الشركة المشتركة\n• توصيل مجاني للطلبات من ' + s.companiesFreeFrom + ' ريال فأكثر بعد الخصم\n• فطور وغداء وسناك وضيافة اجتماعات\n• الاشتراك مجاني، وتوصلكم بطاقة رقمية على واتساب فورًا\nالتسجيل ياخذ دقيقة من صفحة الشركات.', 'Nahem for Companies 🏢\n• ' + s.companiesDiscount + '% off for all staff of a registered company\n• Free delivery on orders of ' + s.companiesFreeFrom + ' SAR or more after the discount\n• Breakfast, lunch, snacks and meeting hospitality\n• Free to join; your digital card arrives on WhatsApp instantly\nRegistering takes a minute on the companies page.'), buttons: [B.companies, B.wa] });
+
+    /* ---------------- nutrition, goals, allergies, ingredients, photos ---------------- */
+    /* the item a question is about: named in it, or (for short follow-ups like "وكم بروتينه؟") the last one discussed */
+    var one = found.length && (found.exact ? found.exactCount <= 2 : found.length === 1 && !findCat(q)) ? found.slice(0, found.exact ? Math.max(1, found.exactCount || 1) : 1) : [];
+    var ctxItem = !found.length && CTX.last.length && words <= 4 ? [CTX.last[0]] : [];
+    var subject = one.length ? one : ctxItem;
+    var sheetAct = function (i) { return { label: X('📋 التفاصيل والقيم الغذائية', '📋 Details & nutrition'), sheet: i }; };
+    var addAct = function (i) { return { label: X('أضف للطلب', 'Add to order'), add: [[1, i]] }; };
+    var estNote = NUTRITION_EST ? X('\n(القيم تقديرية للعرض التجريبي إلى أن يعتمدها مطبخ نهم.)', '\n(Estimated values for this demo until the Nahem kitchen confirms them.)') : '';
+    var allergyNote = X('\n⚠️ حسب الوصفة القياسية، والمطبخ يتعامل مع كل هذه المكونات. إذا عندك حساسية شديدة أكّد مع الموظف قبل الطلب.', '\n⚠️ Based on the standard recipe; the kitchen handles all of these ingredients. With a severe allergy, please confirm with our staff before ordering.');
+    var NUTW = {
+      p: ['بروتين', 'البروتين', 'protein', 'proteins'],
+      c: ['كربوهيدرات', 'الكربوهيدرات', 'كارب', 'كاربز', 'نشويات', 'carbs', 'carb', 'carbohydrate', 'carbohydrates'],
+      f: ['دهون', 'الدهون', '=fat', '=fats', 'fatty'],
+      fib: ['الياف', 'الالياف', 'fiber', 'fibre'],
+      sug: ['سكريات', 'السكريات', '=السكر', '=سكر', '=sugar', 'sugars', 'sugary'],
+      na: ['صوديوم', 'الصوديوم', '=ملح', '=الملح', 'sodium', '=salt', 'salty']
+    };
+    var NUTNAME = { p: X('البروتين', 'protein'), c: X('الكربوهيدرات', 'carbs'), f: X('الدهون', 'fat'), fib: X('الألياف', 'fibre'), sug: X('السكر', 'sugar'), na: X('الملح', 'salt') };
+    var nutrient = Object.keys(NUTW).filter(function (k) { return has(q, NUTW[k], true); })[0] || '';
+    var nutGeneral = has(q, ['قيمه غذائيه', 'القيم الغذائيه', 'قيم غذائيه', 'القيمه الغذائيه', 'معلومات غذائيه', 'الماكروز', 'ماكروز', 'تفصيل السعرات', 'توزيع السعرات', 'nutrition', 'nutritional', 'nutrients', 'macros', 'macro', 'breakdown', 'cholesterol', 'كوليسترول'], true);
+    /* "أعلى بروتين" ranks the menu; "بروتين عالي" is a goal */
+    var rankW = has(q, ['اعلى', 'اكثر', 'الاكثر', 'اقل', 'الاقل', 'most', 'highest', 'lowest', 'least', 'which', '=top'], true);
+    var lowW = has(q, ['اقل', 'الاقل', 'قليل', 'قليله', 'منخفض', 'بدون', 'خالي', 'low', 'lowest', 'least', 'less', 'free'], true);
+    var highW = has(q, ['اعلى', 'اكثر', 'الاكثر', 'عالي', 'عاليه', 'غني', 'كثير', 'مليان', 'high', 'highest', 'most', 'rich', 'lots', 'packed', 'best source'], true);
+    var allergen = Object.keys(ALLERGENS).filter(function (k) { return has(q, ALLERGENS[k][3], true); })[0] || '';
+    var allergyWord = has(q, ['حساسيه', 'تحسس', 'مسببات الحساسيه', 'allergy', 'allergic', 'allergies', 'allergen', 'allergens', 'intolerant', 'intolerance', 'celiac', 'coeliac', 'سيلياك'], true);
+    /* "بيض" in "ساندوتش بيض" is the item's name, not an allergy question */
+    var inName = allergen && one.length && ALLERGENS[allergen][3].some(function (w) { return norm(one[0].ar + ' ' + one[0].en).indexOf(norm(w.replace('=', ''))) !== -1; });
+    /* a general allergy statement is about the whole menu, not the last item ("عندي حساسية من البيض") */
+    var alSubject = one.length ? (inName && allergyWord ? [] : one) : !allergyWord && has(q, ['فيه', 'فيها', 'يحتوي', 'تحتوي', '=it', '=its', 'does it', 'is it', '=هو', '=هي'], true) ? ctxItem : [];
+    var allergyW = allergyWord
+      || (allergen && !inName && (allergen === 'gluten' || has(q, ['=lactose', 'لاكتوز', 'خالي من', 'بدون', 'free', 'without'], true)
+        || (alSubject.length && has(q, ['فيه', 'فيها', 'يحتوي', 'تحتوي', 'contain', 'contains', 'is there', 'any', 'have', 'has', 'does'], true))));
+    var goalId = has(q, ['جيم', 'الجيم', 'نادي رياضي', 'رياضه', 'رياضي', 'عضلات', 'تضخيم', 'كمال اجسام', 'تمرين', 'تمارين', 'gym', 'workout', 'bodybuilding', 'bulking', '=bulk', 'muscle', 'muscles', 'gains', 'post workout', 'athlete', 'training'], true) ? 'protein'
+      : has(q, ['دايت', 'رجيم', 'تنحيف', 'انحف', 'اخس', 'اخسس', 'خساره وزن', 'اخسر وزن', 'انزل وزن', 'انزل من وزني', 'نزول الوزن', 'انقاص الوزن', 'حميه', 'diet', 'dieting', 'lose weight', 'losing weight', 'weight loss', 'cutting', 'calorie deficit', 'slimming', 'fat loss'], true) ? 'diet'
+      : has(q, ['كيتو', 'لو كارب', 'كارب قليل', 'keto', 'low carb', 'lowcarb'], true) ? 'lowcarb'
+      : has(q, ['سكري', 'السكري', 'مريض سكر', 'diabetes', 'diabetic'], true) ? 'lowsugar'
+      : has(q, ['ضغط الدم', 'مريض ضغط', 'عندي ضغط', 'blood pressure', 'hypertension'], true) ? 'lowsalt'
+      : has(q, ['=صحي', '=صحيه', '=الصحي', '=الصحيه', 'اكل صحي', 'اكل نظيف', 'متوازن', 'متوازنه', 'healthy', 'healthiest', 'healthier', 'clean eating', 'balanced', 'nutritious', 'wholesome'], true) ? 'healthy' : '';
+    var fillW = has(q, ['يشبع', 'يشبعني', 'بيشبعني', 'يكفيني', 'بيكفيني', 'يسد', 'يسد جوعي', 'ابقي جوعان', 'بجوع', 'fill me', 'filling', 'fill up', 'keep me full', 'enough for me', 'still hungry', 'will i be hungry', 'satisfying'], true);
+    var ingW = has(q, ['مكونات', 'المكونات', 'مكوناته', 'مكوناتها', 'وش فيه بالضبط', 'وش يدخل فيه', 'ingredients', 'ingredient', 'made of', 'made from', 'what goes into', 'exactly in'], true);
+    /* "show me" alone only means a photo when an item is named in the same message */
+    var noMedia = (!one.length && findCat(q)) || tasteFilters(q, X).length || has(q, ['منيو', 'المنيو', 'menu', 'فرع', 'فروع', 'branch', 'branches', 'موقع', 'location', 'map', 'طلبي', 'السله', 'cart', 'order'], true);
+    var picW = !noMedia && (has(q, ['صوره', 'صور', 'الصوره', 'شكله', 'شكلها', 'زوم', 'picture', 'pictures', 'photo', 'photos', '=pic', 'image', 'look like', 'looks like', 'close up', 'closeup', 'zoom'], true)
+      || (one.length && has(q, ['وريني', 'ورني', 'فرجيني', 'ابي اشوف', 'ابغى اشوف', 'خليني اشوف', 'show me', 'let me see'], true)));
+    var vidW = !noMedia && (has(q, ['فيديو', 'الفيديو', 'مقطع', 'طريقه التحضير', 'كيف تسوون', 'كيف تسوونه', 'كيف تسوونها', 'كيف يتسوي', 'كيف تحضرون', 'كيف تحضرونه', 'كيف تصنعون', 'كيف ينطبخ', 'كيف يتجهز', 'كيف تجهزون', 'video', 'how is it made', 'how its made', 'how do you make', 'how you make', 'how are they made', 'behind the scenes'], true)
+      || /(^|\s)how (is|are) (the |your )?.*\bmade($|\s)/.test(q)) && !has(q, ['متي', 'كم ياخذ', 'وقت', 'how long', 'when', 'time'], true);
+    var macroLines = function (i) {
+      var n = nutri(i);
+      if (!n) return '';
+      var e = n.p * 4 + n.c * 4 + n.f * 9 || 1, pc = function (g, k) { return Math.round(g * k * 100 / e); };
+      var fl = fullness(i);
+      return '🔥 ' + n.kcal + X(' سعرة', ' kcal') + '\n'
+        + X('• بروتين ' + n.p + ' جم (' + pc(n.p, 4) + '% من السعرات)\n• كربوهيدرات ' + n.c + ' جم (' + pc(n.c, 4) + '%)\n• دهون ' + n.f + ' جم (' + pc(n.f, 9) + '%)\n• ألياف ' + n.fib + ' جم · سكر ' + n.sug + ' جم · ملح ' + n.salt + ' جم',
+          '• Protein ' + n.p + ' g (' + pc(n.p, 4) + '% of calories)\n• Carbs ' + n.c + ' g (' + pc(n.c, 4) + '%)\n• Fat ' + n.f + ' g (' + pc(n.f, 9) + '%)\n• Fibre ' + n.fib + ' g · Sugar ' + n.sug + ' g · Salt ' + n.salt + ' g')
+        + (fl ? '\n🍽️ ' + X('الشبع: ', 'Fullness: ') + FULL[lang === 'en' ? 'en' : 'ar'][fl] + ' (' + fl + X(' من 5)', ' / 5)') : '');
+    };
+    var solo = function (i) { return ['boxes', 'sauces'].indexOf(i.cat) === -1 && nutri(i); };
+    var mains = function (i) { return solo(i) && i.cat !== 'drinks' && !/ sweet /.test(' ' + (i.tags || '') + ' '); };
+    /* meat and category words narrow every goal list ("شي دجاج صحي", "breakfast for the gym") */
+    var narrow = function (list) {
+      var fl = tasteFilters(q, X).filter(function (x) { return ['chicken', 'beef', 'veg', 'kids', 'spicy'].indexOf(x.id) !== -1; });
+      var c = findCat(q);
+      var out = list.filter(function (i) { return fl.every(function (x) { return x.test(i); }) && (!c || c === 'boxes' || i.cat === c); });
+      return out.length ? out : list;
+    };
+    var line = function (i, keys) {
+      var n = nutri(i);
+      return '• ' + N(i) + ' — ' + keys.map(function (k) {
+        return k === 'kcal' ? n.kcal + X(' سعرة', ' kcal') : k === 'na' ? X('ملح ', 'salt ') + n.salt + X(' جم', ' g') : n[k] + X(' جم ', ' g ') + NUTNAME[k];
+      }).join(' · ') + ' · ' + i.price + ' ' + SAR;
+    };
+    var goalPlan = function (g, fromRec) {
+      CTX.goal = g;
+      var pool = narrow(d.items.filter(mains)), picks, head, tips, keys;
+      if (g === 'protein') {
+        /* single items first; the meal deals are bigger, so they get their own line */
+        var single = function (i) { return !/ meal /.test(' ' + (i.tags || '') + ' ') && norm(i.ar).indexOf('وجبه') !== 0; };
+        picks = (pool.filter(single).length ? pool.filter(single) : pool).sort(function (a, b) { return nutri(b).p - nutri(a).p; }).slice(0, 4);
+        var dense = pool.filter(function (i) { return nutri(i).p >= 15; }).sort(function (a, b) { return nutri(b).p / nutri(b).kcal - nutri(a).p / nutri(a).kcal; })[0] || picks[0];
+        var bigMeal = pool.filter(function (i) { return !single(i); }).sort(function (a, b) { return nutri(b).p - nutri(a).p; })[0];
+        head = X('💪 لأهداف الجيم، هذي أعلى أصنافنا بروتين:', '💪 For your gym goals, these are our highest-protein items:');
+        keys = ['p', 'kcal'];
+        tips = (bigMeal ? X('\n🍽️ وللجوع الكبير: ' + N(bigMeal) + ' فيها ' + nutri(bigMeal).p + ' جم بروتين (' + nutri(bigMeal).kcal + ' سعرة)', '\n🍽️ For a big appetite: the ' + N(bigMeal) + ' has ' + nutri(bigMeal).p + ' g protein (' + nutri(bigMeal).kcal + ' kcal)') : '')
+          + X('\n💡 أفضل بروتين مقابل السعرات: ' + N(dense) + ' (' + nutri(dense).p + ' جم في ' + nutri(dense).kcal + ' سعرة)\n💡 زِد بروتينك بعرض السعودية سماش: سماش دجاج إضافي بـ 3 ريال مع أي برجر\n💡 خذ ماء بدل المشروب الغازي ووفّر 140 سعرة',
+          '\n💡 Most protein per calorie: ' + N(dense) + ' (' + nutri(dense).p + ' g in ' + nutri(dense).kcal + ' kcal)\n💡 Boost it with the Saudi Smash offer: an extra chicken smash for 3 SAR with any burger\n💡 Swap the soft drink for water and save 140 kcal');
+      } else if (g === 'diet') {
+        picks = pool.filter(function (i) { return nutri(i).kcal <= 400 && nutri(i).p >= 10; }).sort(function (a, b) { return nutri(b).p / nutri(b).kcal - nutri(a).p / nutri(a).kcal; }).slice(0, 4);
+        head = X('🥗 للدايت: أقل سعرات مع بروتين يشبعك:', '🥗 For your diet: fewer calories, with protein to keep you full:');
+        keys = ['kcal', 'p'];
+        tips = X('\n💡 ماء أو قهوة سعودية بدل المشروب الغازي يوفّر 140 سعرة\n💡 اطلب الصوص على جنب\n💡 تقدر تكتب في ملاحظة الطلب «بدون بطاطس» لو ما تبيها',
+          '\n💡 Water or Saudi coffee instead of a soft drink saves 140 kcal\n💡 Ask for the sauce on the side\n💡 Add "no fries" in the order note if you do not want them');
+      } else if (g === 'lowcarb') {
+        picks = pool.slice().sort(function (a, b) { return nutri(a).c - nutri(b).c; }).slice(0, 4);
+        head = X('🥩 لنظام الكارب القليل أو الكيتو، أقل الأصناف كربوهيدرات:', '🥩 For low-carb or keto, our lowest-carb items:');
+        keys = ['c', 'p'];
+        tips = X('\n💡 أغلب الكارب في الخبز والبطاطس. اسأل فريقنا إذا يقدرون يجهزون طلبك بدون خبز.', '\n💡 Most of the carbs are in the bread and fries. Ask our team whether they can make yours without the bun.');
+      } else if (g === 'lowsugar') {
+        picks = d.items.filter(solo).filter(function (i) { return i.cat !== 'drinks' || nutri(i).sug === 0; }).sort(function (a, b) { return nutri(a).sug - nutri(b).sug || nutri(a).c - nutri(b).c; });
+        picks = narrow(picks).slice(0, 4);
+        head = X('🩸 أقل الأصناف سكرًا:', '🩸 Our lowest-sugar items:');
+        keys = ['sug', 'c'];
+        tips = X('\n💡 اختر ماء أو قهوة سعودية، وتجنّب المشروب الغازي (36 جم سكر) والحلى.\nوهذي معلومات عامة، استشر طبيبك لنظامك الغذائي.', '\n💡 Choose water or Saudi coffee; skip the soft drink (36 g sugar) and desserts.\nThis is general information; follow your doctor\'s advice for your diet.');
+      } else if (g === 'lowsalt') {
+        picks = pool.slice().sort(function (a, b) { return nutri(a).na - nutri(b).na; }).slice(0, 4);
+        head = X('🧂 أقل الأصناف ملحًا:', '🧂 Our lowest-salt items:');
+        keys = ['na', 'kcal'];
+        tips = X('\n💡 الصوصات والبطاطس تزيد الملح، اطلبها على جنب.\nوهذي معلومات عامة، استشر طبيبك لنظامك الغذائي.', '\n💡 Sauces and fries add salt, so ask for them on the side.\nThis is general information; follow your doctor\'s advice for your diet.');
+      } else {
+        /* healthy: more protein and fibre, less sugar, salt and fat per calorie */
+        var score = function (i) { var n = nutri(i); return (n.p * 4 + n.fib * 12 - n.sug * 4 - n.f * 3 - n.na / 60) / n.kcal; };
+        picks = pool.filter(function (i) { return nutri(i).kcal <= 500; }).sort(function (a, b) { return score(b) - score(a); }).slice(0, 4);
+        head = X('💚 أكثر أصنافنا توازنًا (بروتين وألياف أعلى، وسكر ودهون أقل):', '💚 Our most balanced picks (more protein and fibre, less sugar and fat):');
+        keys = ['kcal', 'p', 'fib'];
+        tips = X('\n💡 أضف سلطة ملفوف بدل البطاطس، وخذ ماء مع وجبتك.', '\n💡 Add a coleslaw instead of fries, and have water with your meal.');
+      }
+      CTX.last = picks.slice(0, 3);
+      if (fromRec) head = X('🎯 حسب هدفك اللي ذكرته (قل «الألذ وبس» لاقتراحات عامة):\n', '🎯 Based on the goal you mentioned (say "just the tastiest" for general picks):\n') + head;
+      return R({ text: head + '\n' + picks.map(function (i) { return line(i, keys); }).join('\n') + tips + estNote, cards: picks,
+        actions: picks[0] ? [addAct(picks[0])] : null, buttons: [B.order],
+        chips: X(['💪 بروتين عالي', '🥗 دايت', '💚 أكل صحي', '🚫 عندي حساسية', '📊 القيم الغذائية'], ['💪 High protein', '🥗 Diet', '💚 Healthy', '🚫 I have an allergy', '📊 Nutrition facts']).filter(function (c) { return c.indexOf(g === 'protein' ? 'بروتين' : g === 'diet' ? 'دايت' : 'صحي') === -1 && c.toLowerCase().indexOf(g === 'protein' ? 'protein' : g === 'diet' ? 'diet' : 'healthy') === -1; }) });
+    };
+
+    /* "حسب هدفي", "what suits me": ask about the customer's need first */
+    if (has(q, ['حسب هدفي', 'هدفي', 'نظامي الغذائي', 'وش يناسبني', 'ايش يناسبني', 'وش اللي يناسبني', 'حسب احتياجي', 'my goal', 'my goals', 'my diet', 'based on my', 'what suits me', 'find my meal', 'right for me'], true) && !one.length && !goalId)
+      return R({ text: X('أكيد! أقترح لك حسب احتياجك 🎯 وش أقرب شي لك؟', "Sure! I'll match it to what you need 🎯 Which is closest to you?"),
+        chips: X(['💪 بروتين عالي للجيم', '🥗 دايت وسعرات أقل', '💚 أكل صحي ومتوازن', '🍽️ جوعان وأبي شي يشبع', '🚫 عندي حساسية', '🩸 سكر أقل', '😋 أبي الألذ وبس'], ['💪 High protein for the gym', '🥗 Diet, fewer calories', '💚 Healthy and balanced', '🍽️ Very hungry', '🚫 I have an allergy', '🩸 Less sugar', '😋 Just the tastiest']) });
+    if (has(q, ['ابي الالذ', 'الالذ وبس', 'just the tastiest', 'general picks'], true)) { CTX.goal = null; return recommend(d, X, B, R, popular); }
+
+    /* allergies: one item ("is the zinger gluten free?") or the whole menu ("I'm allergic to dairy") */
+    if (allergyW) {
+      if (!allergen && alSubject.length) {
+        var al0 = allergensOf(alSubject[0]) || [];
+        CTX.last = [alSubject[0]];
+        return R({ text: X('مسببات الحساسية في ' + N(alSubject[0]) + ':\n', 'Allergens in the ' + N(alSubject[0]) + ':\n')
+            + (al0.length ? al0.map(function (a) { return ALLERGENS[a][2] + ' ' + X(ALLERGENS[a][0], ALLERGENS[a][1]); }).join('\n') : X('ما فيه مسببات حساسية شائعة في الوصفة القياسية.', 'No common allergens in the standard recipe.'))
+            + (CHOICE.indexOf(alSubject[0].ar) !== -1 ? X('\nتختلف حسب الأصناف اللي تختارها داخله.', '\nIt depends on the items you choose inside it.') : '') + allergyNote,
+          cards: [alSubject[0]], actions: [sheetAct(alSubject[0])], buttons: [B.wa] });
+      }
+      if (!allergen)
+        return R({ text: X('سلامتك أهم 🙏 من أي شي عندك حساسية؟ أوريك الأصناف اللي ما تحتوي عليه حسب الوصفة.', 'Your safety comes first 🙏 What are you allergic to? I will show you the items without it in the standard recipe.'),
+          chips: X(['حساسية جلوتين', 'حساسية لاكتوز', 'حساسية بيض', 'حساسية سمسم', 'حساسية سمك', 'حساسية مكسرات'], ['Gluten allergy', 'Lactose intolerance', 'Egg allergy', 'Sesame allergy', 'Fish allergy', 'Nut allergy']) });
+      var A = ALLERGENS[allergen], aName = X(A[0], A[1]);
+      var friedNote = allergen === 'gluten' ? X('\nالبطاطس تنقلى غالبًا في نفس زيت الدجاج المقرمش، فممكن تتعرض لآثار جلوتين.', '\nFries are usually cooked in the same oil as the breaded chicken, so they may carry traces of gluten.') : '';
+      if (alSubject.length) {
+        var it0 = alSubject[0], al = allergensOf(it0) || [], yes = al.indexOf(allergen) !== -1;
+        CTX.last = [it0];
+        var alt = narrow(d.items.filter(mains).filter(function (i) { return (allergensOf(i) || []).indexOf(allergen) === -1 && CHOICE.indexOf(i.ar) === -1; })).slice(0, 3);
+        return R({ text: (yes ? X('⚠️ ' + N(it0) + ' يحتوي على ' + A[0] + ' حسب الوصفة القياسية.', '⚠️ The ' + N(it0) + ' contains ' + A[1].toLowerCase() + ' in its standard recipe.')
+              : X('✅ ' + N(it0) + ' ما يحتوي على ' + A[0] + ' في الوصفة القياسية.', '✅ The ' + N(it0) + ' has no ' + A[1].toLowerCase() + ' in its standard recipe.'))
+            + (al.length ? X('\nمسببات الحساسية فيه: ', '\nIts allergens: ') + al.map(function (a) { return X(ALLERGENS[a][0], ALLERGENS[a][1]); }).join(X('، ', ', ')) : '')
+            + (yes && alt.length ? X('\nبدائل بدون ' + A[0] + ': ', '\nAlternatives without ' + A[1].toLowerCase() + ': ') + alt.map(N).join(X('، ', ', ')) + friedNote : '') + allergyNote,
+          cards: yes && alt.length ? [it0].concat(alt) : [it0], actions: [sheetAct(it0)], buttons: [B.wa] });
+      }
+      var safe = narrow(d.items.filter(function (i) { return solo(i) && i.cat !== 'drinks' && (allergensOf(i) || ['x']).indexOf(allergen) === -1 && CHOICE.indexOf(i.ar) === -1; }));
+      var fried = friedNote;
+      var nutsNote = allergen === 'nuts' ? X('\nما في أي وصفة عندنا مكسرات، لكن ما نقدر نضمن عدم وجود آثار (مثل الشوكولاتة).', '\nNone of our recipes list nuts, but we cannot rule out traces (for example in chocolate).') : '';
+      CTX.last = safe.slice(0, 3);
+      return R({ text: (safe.length ? X('الأصناف اللي ما فيها ' + A[0] + ' حسب الوصفة القياسية ' + A[2] + ':\n', 'Items with no ' + A[1].toLowerCase() + ' in the standard recipe ' + A[2] + ':\n') + safe.slice(0, 8).map(function (i) { return '• ' + N(i); }).join('\n')
+            : X('للأسف كل أصنافنا الرئيسية فيها ' + A[0] + ' 🙏', 'Sorry, all of our main items contain ' + A[1].toLowerCase() + ' 🙏')) + fried + nutsNote + allergyNote,
+        cards: safe.slice(0, 6), buttons: [B.wa], chips: X(['حساسية جلوتين', 'حساسية لاكتوز', 'حساسية بيض'], ['Gluten allergy', 'Lactose intolerance', 'Egg allergy']).filter(function (c) { return has(norm(c), A[3], true) === false; }) });
+    }
+
+    /* nutrition facts and rankings ("كم بروتين الزنجر", "أعلى بروتين", "nutrition of the burger box") */
+    /* a goal with no item named ("انا مريض سكر وش اطلب", "I go to the gym") gets the goal's picks */
+    if (goalId && !one.length) return goalPlan(goalId);
+    if (nutrient || nutGeneral) {
+      if (nutrient && !one.length && (rankW || highW || lowW || !subject.length)) {
+        if (!rankW) {
+          if (nutrient === 'p' && !lowW) return goalPlan('protein');
+          if (nutrient === 'sug' && !highW) return goalPlan('lowsugar');
+          if (nutrient === 'na' && !highW) return goalPlan('lowsalt');
+          if (nutrient === 'c' && !highW) return goalPlan('lowcarb');
+        }
+        var up = highW || (!lowW && (nutrient === 'p' || nutrient === 'fib'));
+        var ranked = narrow(d.items.filter(nutrient === 'sug' ? solo : mains)).sort(function (a, b) { return up ? nutri(b)[nutrient] - nutri(a)[nutrient] : nutri(a)[nutrient] - nutri(b)[nutrient]; }).slice(0, 5);
+        CTX.last = ranked.slice(0, 3);
+        return R({ text: (up ? X('الأعلى في ' + NUTNAME[nutrient] + ':\n', 'Highest in ' + NUTNAME[nutrient] + ':\n') : X('الأقل في ' + NUTNAME[nutrient] + ':\n', 'Lowest in ' + NUTNAME[nutrient] + ':\n'))
+            + ranked.map(function (i) { return line(i, [nutrient, 'kcal']); }).join('\n') + estNote,
+          cards: ranked.slice(0, 4), buttons: [B.order], chips: X(['📊 القيم الغذائية للزنجر', '💪 بروتين عالي', '🥗 دايت'], ['📊 Zinger nutrition', '💪 High protein', '🥗 Diet']) });
+      }
+      if (subject.length) {
+        CTX.last = subject.slice(0, 2);
+        var withN = subject.filter(function (i) { return nutri(i); }).slice(0, 2);
+        if (!withN.length) return R({ text: X('ما عندي قيم غذائية لهذا الصنف حاليًا 🙏', "I don't have nutrition values for that item yet 🙏"), buttons: [B.wa] });
+        var focus = nutrient ? withN.map(function (i) { var n = nutri(i); return N(i) + ': ' + (nutrient === 'na' ? X('ملح ', 'salt ') + n.salt + X(' جم', ' g') : n[nutrient] + X(' جم ', ' g ') + NUTNAME[nutrient]); }).join('\n') + '\n\n' : '';
+        return R({ text: focus + withN.map(function (i) { return '📊 ' + X('القيم الغذائية لـ ', 'Nutrition: ') + N(i) + (CHOICE.indexOf(i.ar) !== -1 ? X(' (تختلف حسب اختيارك)', ' (depends on your choice)') : '') + '\n' + macroLines(i); }).join('\n\n') + estNote,
+          cards: withN, actions: [sheetAct(withN[0])], buttons: [B.order], chips: pairChips(withN[0], X) });
+      }
+      return R({ text: X('أقدر أعطيك القيم الغذائية الكاملة لأي صنف 📊: السعرات وتوزيعها، البروتين، الكربوهيدرات، الدهون، الألياف، السكر والملح، ومدى الشبع.\nاسألني مثلًا: «القيم الغذائية للزنجر»، أو اختار هدفك:', 'I can give you the full nutrition of any item 📊: calories and their breakdown, protein, carbs, fat, fibre, sugar, salt and how filling it is.\nAsk e.g. "nutrition of the zinger", or pick your goal:'),
+        chips: X(['📊 القيم الغذائية للزنجر', '💪 بروتين عالي', '🥗 دايت', '💚 أكل صحي', '🚫 عندي حساسية'], ['📊 Zinger nutrition', '💪 High protein', '🥗 Diet', '💚 Healthy', '🚫 I have an allergy']) });
+    }
+
+    /* "will the zinger fill me up?" */
+    if (fillW && subject.length && one.length) {
+      var fi = subject[0], fv = fullness(fi), fnn = nutri(fi);
+      CTX.last = [fi];
+      if (!fv) return R({ text: fi.cat === 'boxes' ? X(N(fi) + ' للمشاركة 👥 ' + X(fi.dAr, fi.dEn) + '.', N(fi) + ' is for sharing 👥 ' + fi.dEn + '.') : X(N(fi) + ' مشروب أو إضافة، ما يكفي كوجبة 🙂', N(fi) + ' is a drink or extra, not a meal on its own 🙂'), cards: [fi], buttons: [B.order] });
+      var more = fv <= 2 ? narrow(d.items.filter(mains).filter(function (i) { return fullness(i) >= 4 && i.cat !== 'boxes'; })).sort(function (a, b) { return a.price - b.price; }).slice(0, 2) : [];
+      var fries = byNames(d, ['بطاطس'])[0];
+      return R({ text: '🍽️ ' + N(fi) + ': ' + FULL[lang === 'en' ? 'en' : 'ar'][fv] + ' (' + fv + X(' من 5)', ' / 5)') + '\n'
+          + X('فيه ' + fnn.kcal + ' سعرة و' + fnn.p + ' جم بروتين و' + fnn.fib + ' جم ألياف، والبروتين والألياف هم اللي يطوّلون الشبع.', 'It has ' + fnn.kcal + ' kcal, ' + fnn.p + ' g protein and ' + fnn.fib + ' g fibre; protein and fibre are what keep you full longer.')
+          + (fv <= 2 ? X('\nإذا جوعك كبير، زِد ' + (fries ? 'بطاطس (' + fries.price + ' ريال) ' : '') + 'أو خذ شي أشبع:', '\nVery hungry? Add ' + (fries ? 'fries (' + fries.price + ' SAR) ' : '') + 'or go for something more filling:') : fv >= 4 ? X('\nيكفيك كوجبة كاملة 👌', '\nA full meal on its own 👌') : X('\nيكفي لجوع متوسط، ومع البطاطس أو المشروب يصير وجبة كاملة.', '\nRight for a normal appetite; with fries or a drink it is a full meal.')) + estNote,
+        cards: [fi].concat(more), actions: [addAct(fi), sheetAct(fi)], buttons: [B.order] });
+    }
+    if (fillW && !one.length && has(q, ['اكثر', 'اشبع', 'most', 'which', 'وش', 'ايش'], true)) {
+      var byFull = narrow(d.items.filter(function (i) { return fullness(i) >= 4; })).sort(function (a, b) { return fullness(b) - fullness(a) || a.price - b.price; }).slice(0, 4);
+      CTX.last = byFull.slice(0, 3);
+      return R({ text: X('أكثر شي يشبع 🍽️\n', 'The most filling picks 🍽️\n') + byFull.map(function (i) { return '• ' + N(i) + ' — ' + FULL[lang === 'en' ? 'en' : 'ar'][fullness(i)] + ' · ' + i.price + ' ' + SAR; }).join('\n') + estNote, cards: byFull, buttons: [B.order] });
+    }
+
+    /* "is the zinger healthy?" / "good for a diet?" about one item: an honest answer and lighter swaps */
+    if (goalId && one.length) {
+      var hi = one[0], hn = nutri(hi);
+      if (hn) {
+        CTX.last = [hi];
+        var heavy = hn.kcal > 550 || hn.f > 28 || hn.sug > 30, lightAlt = narrow(d.items.filter(mains).filter(function (i) { return nutri(i).kcal < hn.kcal - 100 && nutri(i).p >= 12; })).sort(function (a, b) { return nutri(b).p / nutri(b).kcal - nutri(a).p / nutri(a).kcal; }).slice(0, 2);
+        var verdict = goalId === 'protein'
+          ? (hn.p >= 25 ? X('💪 خيار ممتاز للجيم: ' + hn.p + ' جم بروتين.', '💪 A great gym pick: ' + hn.p + ' g protein.') : X('💪 فيه ' + hn.p + ' جم بروتين، متوسط. لبروتين أعلى جرّب:', '💪 It has ' + hn.p + ' g protein, which is moderate. For more, try:'))
+          : heavy ? X('بصراحة ' + N(hi) + ' وجبة دسمة (' + hn.kcal + ' سعرة، ' + hn.f + ' جم دهون) 🙂 تنفع مرة على خفيف، ولو تبي أخف جرّب:', 'Honestly, the ' + N(hi) + ' is on the rich side (' + hn.kcal + ' kcal, ' + hn.f + ' g fat) 🙂 Fine as a treat; for something lighter, try:')
+          : X('👍 ' + N(hi) + ' خيار معتدل: ' + hn.kcal + ' سعرة و' + hn.p + ' جم بروتين.', '👍 The ' + N(hi) + ' is a moderate choice: ' + hn.kcal + ' kcal and ' + hn.p + ' g protein.');
+        var showAlt = goalId === 'protein' ? (hn.p < 25 ? narrow(d.items.filter(mains)).sort(function (a, b) { return nutri(b).p - nutri(a).p; }).slice(0, 2) : []) : heavy ? lightAlt : [];
+        return R({ text: verdict + estNote, cards: [hi].concat(showAlt), actions: [sheetAct(hi)], buttons: [B.order] });
+      }
+    }
+    if (goalId) return goalPlan(goalId);
+
+    /* ingredients of one item */
+    if (ingW && subject.length) {
+      var gi = subject[0], ing = ingredientsOf(gi, lang), gal = allergensOf(gi) || [];
+      CTX.last = [gi];
+      if (ing) return R({ text: X('مكونات ' + N(gi) + ' 🧾\n', 'What goes into the ' + N(gi) + ' 🧾\n') + X(gi.dAr, gi.dEn) + '\n' + ing.map(function (x) { return '• ' + x; }).join('\n')
+          + (CHOICE.indexOf(gi.ar) !== -1 ? X('\n(تختلف حسب اختيارك)', '\n(It depends on what you choose)') : '')
+          + (gal.length ? X('\nمسببات الحساسية: ', '\nAllergens: ') + gal.map(function (a) { return ALLERGENS[a][2] + ' ' + X(ALLERGENS[a][0], ALLERGENS[a][1]); }).join(X('، ', ', ')) : '') + allergyNote,
+        cards: [gi], actions: [sheetAct(gi), addAct(gi)], buttons: [B.order] });
+    }
+    /* a close-up photo or the preparation video */
+    if ((picW || vidW) && !subject.length && !findCat(q) && !has(q, ['منيو', 'menu'], true))
+      return R({ text: vidW ? X('أي صنف تبي تشوف طريقة تحضيره؟ 🎬', 'Which item would you like to see being made? 🎬') : X('أي صنف تبي تشوف صورته؟ 📸', 'Which item would you like to see? 📸'), cards: popular.slice(0, 3),
+        chips: popular.slice(0, 3).map(function (i) { return (vidW ? X('فيديو ', 'Video of ') : X('صورة ', 'Photo of ')) + N(i); }) });
+    if ((picW || vidW) && subject.length && !has(q, ['منيو', 'menu'], true)) {
+      var pi = subject[0], vid = MEDIA[pi.ar] && MEDIA[pi.ar].video;
+      CTX.last = [pi];
+      return R({ text: vidW ? (vid ? X('هذا ' + N(pi) + ' وهو يتحضّر 🎬', 'Here is the ' + N(pi) + ' being made 🎬') : X('فيديو تحضير ' + N(pi) + ' بيتوفّر قريبًا 🎬 هذي صورته عن قرب، واضغط عليها للتكبير:', 'A preparation video for the ' + N(pi) + ' is coming soon 🎬 Here is a close-up; tap to zoom:'))
+          : X('هذا ' + N(pi) + ' عن قرب 📸 اضغط على الصورة للتكبير.', 'Here is the ' + N(pi) + ' up close 📸 Tap the photo to zoom.'),
+        photo: pi, video: vid || '', actions: [addAct(pi), sheetAct(pi)], buttons: [B.order] });
+    }
 
     /* ---------------- groups and budgets ---------------- */
     var people = peopleCount(q) || (CTX.topic === 'group' && /^(و |and )?(ل|for )?\s*\d+\s*$/.test(q) ? Number(q.replace(/\D/g, '')) : 0);
@@ -542,17 +889,6 @@
         cards: byNames(d, ['بوكس الخفايف', 'وجبة نهم', 'ساندوتش جبنتين']), buttons: [B.order, B.ios] });
 
     /* ---------------- facts the site does not state ---------------- */
-    /* fat, protein, carbs, sugar, salt: not published; give the calories we have and hand over */
-    if (has(q, ['دهون', 'الدهون', 'بروتين', 'البروتين', 'كربوهيدرات', 'كارب', 'سكريات', '=السكر', '=سكر', 'صوديوم', '=ملح', 'الملح', 'قيمه غذائيه', 'القيم الغذائيه', 'الياف', '=fat', '=fats', 'protein', 'carbs', 'carb', 'carbohydrates', '=sugar', 'sodium', '=salt', 'nutrition', 'nutritional', 'macros', 'fiber', 'fibre', 'cholesterol'])) {
-      if (FACTS.nutrition) return R({ text: X(FACTS.nutrition.ar, FACTS.nutrition.en), buttons: [B.order] });
-      var nItems = found.length && (found.exact || found.length <= 3) ? found.slice(0, 3) : CTX.last.slice(0, 3);
-      var kLines = nItems.map(function (i) { var c = kcalOf(i); return c ? '• ' + N(i) + ': ' + (c.est ? X('نحو ', 'about ') : '') + c.n + X(' سعرة', ' kcal') : null; }).filter(Boolean);
-      return R({ text: X('ما عندي حاليًا تفاصيل الدهون والبروتين والكربوهيدرات والسكر لأصنافنا، وما أبغى أعطيك أرقام غير دقيقة 🙏', "I don't have fat, protein, carb or sugar figures for our items yet, and I don't want to give you inaccurate numbers 🙏")
-          + (kLines.length ? X('\nاللي أقدر أعطيك إياه هو السعرات:\n', '\nWhat I can give you is the calories:\n') + kLines.join('\n') : X('\nأقدر أعطيك السعرات الحرارية لأي صنف، مثلًا: «كم سعرات الزنجر؟»', '\nI can give you the calories of any item, e.g. "calories in the zinger".'))
-          + X('\nولتفاصيل غذائية أكثر، فريقنا على واتساب ' + waNum + '.', '\nFor more nutrition details, our team is on WhatsApp ' + waNum + '.'),
-        cards: nItems.length ? nItems : null, buttons: [B.wa], chips: X(['أخف الأصناف', 'أقل من 400 سعرة'], ['Lightest items', 'Under 400 kcal']) });
-    }
-
     /* calories: exact from the menu, estimates marked as approximate */
     /* "سعره" alone also means "its price", so it only counts as calories after a number ("500 سعرة") */
     if (!FACTS.calories && (has(q, ['سعرات', 'كالوري', 'كالوريز', 'calorie', 'calories', 'kcal', '=cal', 'low calorie', 'low cal', 'اخف الاصناف', 'lightest items']) || /\d+\s*(سعره|kcal|cal)($|\s)/.test(q))) {
@@ -694,7 +1030,7 @@
       var ask = has(q, ['مكونات', 'وش فيه', 'ايش فيه', 'وش هو', 'وش هي', 'وش يعني', 'ايش هو', 'ايش يعني', 'وصف', 'what is', 'whats in', 'what s in', 'ingredients', 'what does', 'describe']);
       if (/(يناسبه|goes with)/.test(q) && items[0]) return R({ text: itemDetail(items[0], d, X, N, true), cards: byNames(d, ['بطاطس', 'مشروب غازي', 'الصوصات']), buttons: [B.order] });
       if (items.length === 1 || items.exactCount === 1)
-        return R({ text: itemDetail(items[0], d, X, N, ask || has(q, ['سعر', '=كم', 'بكم', 'how much', 'price', 'cost']), ask), cards: [items[0]], buttons: [B.order, B.menu], chips: pairChips(items[0], X) });
+        return R({ text: itemDetail(items[0], d, X, N, ask || has(q, ['سعر', '=كم', 'بكم', 'how much', 'price', 'cost']), ask), cards: [items[0]], actions: [sheetAct(items[0])], buttons: [B.order, B.menu], chips: pairChips(items[0], X) });
       return R({ text: X('هذي الأصناف اللي تطابق سؤالك:', 'These items match your question:'), cards: items, buttons: [B.order], chips: X(['قارن بينهم', 'وش تنصحني؟'], ['Compare them', 'What do you recommend?']) });
     }
     if (filters.length) {
@@ -719,10 +1055,10 @@
 
     /* ---------------- recommendations ---------------- */
     if (has(q, ['انصح', 'تنصح', 'تنصحني', 'نصيحه', 'اقترح', 'اقتراح', 'تقترح', 'وش اطلب', 'ايش اطلب', 'وش اخذ', 'ايش اخذ', 'وش اكل', 'ايش اكل', 'محتار', 'وش الزين', 'ايش الزين', 'وش الحلو', 'ايش الحلو', 'الافضل', 'افضل شي', 'احسن شي', 'الذ شي', 'احلى شي', 'اطعم شي', 'اول مره', 'جوعان', 'جوعانه', 'جيعان', 'لشخص واحد', 'افضل طبق', 'افضل وجبه', 'افضل صنف', 'ماذا تنصح', 'بماذا تنصح', 'ما تنصح', 'ماذا اطلب', 'ماذا اكل', 'recommend', 'recommendation', 'suggest', 'suggestion', 'what should', 'what to get', 'what to eat', 'best', 'first time', 'hungry', 'good here', 'tasty', 'delicious', 'for one person', 'tastiest']))
-      return recommend(d, X, B, R, popular);
+      return CTX.goal ? goalPlan(CTX.goal, true) : recommend(d, X, B, R, popular);
     if (items.length) {
       CTX.last = items.slice(0, 3);
-      if (items.length === 1) return R({ text: itemDetail(items[0], d, X, N), cards: [items[0]], buttons: [B.order, B.menu], chips: pairChips(items[0], X) });
+      if (items.length === 1) return R({ text: itemDetail(items[0], d, X, N), cards: [items[0]], actions: [sheetAct(items[0])], buttons: [B.order, B.menu], chips: pairChips(items[0], X) });
       return R({ text: X('تقصد واحد من هذي؟', 'Did you mean one of these?'), cards: items, buttons: [B.order] });
     }
 
@@ -788,6 +1124,9 @@
     var lines = withName ? [N(it) + ' — ' + it.price + ' ' + X('ريال', 'SAR')] : [];
     if (withDesc) lines.push(X(it.dAr, it.dEn));
     if ((d.popular || []).indexOf(it) !== -1 || / popular /.test(' ' + (it.tags || '') + ' ')) lines.push(X('🏆 من الأكثر طلبًا في نهم', '🏆 One of Nahem\'s best sellers'));
+    var n = nutri(it), fl = fullness(it);
+    if (n && ['drinks', 'sauces'].indexOf(it.cat) === -1)
+      lines.push(X('📊 ' + n.kcal + ' سعرة · ' + n.p + ' جم بروتين' + (fl ? ' · ' + FULL.ar[fl] : ''), '📊 ' + n.kcal + ' kcal · ' + n.p + ' g protein' + (fl ? ' · ' + FULL.en[fl] : '')));
     var tags = ' ' + (it.tags || '') + ' ';
     if (it.cat === 'boxes') lines.push(X('مناسب للمشاركة 👥 قل لي عددكم وأحسب لك كم بوكس تحتاج.', 'Made for sharing 👥 tell me how many you are and I will work out how many boxes you need.'));
     else if (['burger', 'special'].indexOf(it.cat) !== -1 && tags.indexOf(' drink ') === -1) {
@@ -985,6 +1324,7 @@
     '.ib{border:0;background:transparent;color:#fff;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;cursor:pointer;flex:none}',
     '.ib:hover{background:rgba(255,255,255,.2)}',
     '.ib svg{width:18px;height:18px}',
+    '.ib[hidden],.hb[hidden]{display:none}',
     /* messages */
     '.log{flex:1;overflow-y:auto;padding:14px 14px 16px;display:flex;flex-direction:column;gap:12px;background:var(--bg);margin-top:-12px;border-radius:16px 16px 0 0;position:relative}',
     '.row{display:flex;gap:8px;align-items:flex-end}',
@@ -1073,12 +1413,133 @@
     '.send svg,.mic svg{width:20px;height:20px}',
     '.rtl .send svg{transform:scaleX(-1)}',
     '.foot{text-align:center;font-size:11px;color:var(--mut);padding:0 12px calc(8px + env(safe-area-inset-bottom,0px));background:var(--bg)}',
+    /* tappable cards, photos and the product sheet */
+    '.card{cursor:pointer;transition:border-color .15s}',
+    '.card:hover{border-color:var(--o)}',
+    '.card .nm .more{display:inline;margin-inline-start:6px;font-size:12px;font-weight:700;color:var(--o)}',
+    '.btns button.s{background:var(--bg);color:var(--o)}',
+    '.ph{display:block;width:100%;margin-top:10px;padding:0;border:0;border-radius:14px;overflow:hidden;background:var(--os);cursor:zoom-in;position:relative}',
+    '.ph img,.vid{display:block;width:100%;aspect-ratio:4/3;object-fit:cover}',
+    '.vid{margin-top:10px;border:0;border-radius:14px;background:#000;object-fit:contain}',
+    '.ph span,.sh-hero span{position:absolute;bottom:8px;inset-inline-end:8px;background:rgba(0,0,0,.6);color:#fff;font-size:12px;font-weight:700;border-radius:999px;padding:4px 10px}',
+    '.sheet{position:absolute;inset:0;z-index:5;background:var(--bg);display:flex;flex-direction:column}',
+    '.sheet[hidden]{display:none}',
+    '.sh-top{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);background:var(--bg)}',
+    '.sh-top b{flex:1;font-size:16px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.sh-top .ib{color:var(--ink)}',
+    '.sh-top .ib:hover{background:var(--bg2)}',
+    '.rtl .sh-back svg{transform:scaleX(-1)}',
+    '.sh-body{flex:1;overflow-y:auto;padding:0 0 18px}',
+    '.sh-hero{display:block;width:100%;padding:0;border:0;background:var(--os);cursor:zoom-in;position:relative}',
+    '.sh-hero img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover}',
+    '.sh-sec{padding:14px 16px 0}',
+    '.sh-sec h3{margin:0 0 4px;font-size:19px;line-height:1.3}',
+    '.sh-sec h4{display:flex;align-items:center;gap:8px;margin:0 0 8px;font-size:15px}',
+    '.sh-sec p{margin:0;color:var(--mut);font-size:14px;line-height:1.55}',
+    '.sh-buy{display:flex;align-items:center;gap:10px;margin-top:12px}',
+    '.sh-buy em{font-style:normal;font-weight:800;font-size:20px;color:var(--o2);font-variant-numeric:tabular-nums}',
+    '.sh-buy button{margin-inline-start:auto;border:0;border-radius:999px;background:var(--o);color:#fff;font:inherit;font-weight:700;font-size:14px;padding:10px 18px;cursor:pointer}',
+    '.sh-buy button.ok{background:var(--ok)}',
+    '.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}',
+    '.tags span{font-size:12.5px;font-weight:700;border-radius:999px;padding:4px 10px;background:var(--os);color:var(--o2)}',
+    '.est{font-size:11px;font-weight:700;color:var(--mut);border:1px solid var(--line);border-radius:999px;padding:1px 8px}',
+    '.kc{display:flex;align-items:baseline;gap:8px;margin-bottom:10px}',
+    '.kc b{font-size:30px;line-height:1;font-variant-numeric:tabular-nums}',
+    '.kc span{color:var(--mut);font-size:13px}',
+    '.stack{display:flex;height:12px;border-radius:999px;overflow:hidden;background:var(--bg2)}',
+    '.stack i{display:block;height:100%}',
+    '.leg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}',
+    '.leg div{background:var(--bg2);border-radius:12px;padding:8px;text-align:center}',
+    '.leg b{display:block;font-size:17px;font-variant-numeric:tabular-nums}',
+    '.leg small{display:flex;align-items:center;justify-content:center;gap:5px;color:var(--mut);font-size:12px;font-weight:600}',
+    '.leg small i,.stack i{flex:none}',
+    '.leg small i{width:9px;height:9px;border-radius:50%}',
+    '.nr{display:grid;grid-template-columns:1fr auto 64px;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}',
+    '.nr span{font-weight:700;font-variant-numeric:tabular-nums}',
+    '.nr .dv{height:6px;border-radius:999px;background:var(--bg2);overflow:hidden}',
+    '.nr .dv i{display:block;height:100%;background:var(--o)}',
+    '.dvn{margin-top:6px;font-size:12px;color:var(--mut)}',
+    '.meter{display:flex;gap:5px;align-items:center}',
+    '.meter i{width:26px;height:10px;border-radius:999px;background:var(--bg2)}',
+    '.meter i.on{background:var(--o)}',
+    '.meter span{margin-inline-start:6px;font-weight:700;font-size:14px}',
+    '.ing{margin:0;padding-inline-start:20px;font-size:14px;line-height:1.7}',
+    '.al{display:flex;flex-wrap:wrap;gap:6px}',
+    '.al span{font-size:13px;font-weight:700;border-radius:999px;padding:4px 11px;background:#fde8e8;color:#9b1c1c}',
+    '@media (prefers-color-scheme:dark){.al span{background:#4a1d1d;color:#fecaca}}',
+    '.warn{margin-top:8px;font-size:12.5px;color:var(--mut);line-height:1.5}',
+    '.soon{display:grid;place-items:center;gap:4px;text-align:center;aspect-ratio:16/9;border-radius:14px;border:1.5px dashed var(--line);color:var(--mut);font-size:13.5px;padding:12px}',
+    '.soon b{font-size:26px}',
+    /* full-screen zoom */
+    '.zoom{position:fixed;inset:0;z-index:2147483600;background:rgba(10,8,6,.94);display:grid;place-items:center;overflow:hidden;touch-action:pinch-zoom}',
+    '.zoom[hidden]{display:none}',
+    '.zoom img{max-width:100%;max-height:100%;object-fit:contain;transition:transform .2s;cursor:zoom-in}',
+    '.zoom.in img{transform:scale(2.4);cursor:zoom-out}',
+    '.zoom .ib{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));inset-inline-end:14px;background:rgba(255,255,255,.15);width:44px;height:44px}',
+    '.zoom p{position:absolute;bottom:calc(16px + env(safe-area-inset-bottom,0px));margin:0;color:#fff;font-weight:700;font-size:15px;text-align:center;width:100%}',
+    /* the in-store kiosk: full screen, large type, a welcome screen between customers */
+    '.kiosk{font-size:19px}',
+    '.kiosk .fab,.kiosk .tease{display:none!important}',
+    '.kiosk .panel{inset:0!important;width:100%;height:100%;max-height:100%;border-radius:0;border:0}',
+    '.kiosk .head{padding:18px max(18px,calc((100% - 960px)/2)) 30px}',
+    '.kiosk .head .av{width:56px;height:56px}',
+    '.kiosk .ttl b{font-size:24px}.kiosk .ttl small{font-size:15px}',
+    '.kiosk .hb{height:44px;padding:0 18px;font-size:16px}',
+    '.kiosk .ib{width:44px;height:44px}',
+    '.kiosk .log{padding:22px max(18px,calc((100% - 960px)/2))}',
+    '.kiosk .m{font-size:21px;line-height:1.6;padding:14px 20px}',
+    '.kiosk .row .av{width:40px;height:40px}.kiosk .row .sp{width:40px}',
+    '.kiosk .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}',
+    '.kiosk .card{padding:10px;border-radius:18px}',
+    '.kiosk .th{width:88px;height:88px;border-radius:14px}',
+    '.kiosk .card .nm b{font-size:18px}.kiosk .card .nm span{font-size:15px}.kiosk .card .nm em{font-size:17px}',
+    '.kiosk .add{width:48px;height:48px;font-size:26px}',
+    '.kiosk .btns a,.kiosk .btns button{font-size:17px;padding:11px 20px}',
+    '.kiosk .chips{padding:12px max(18px,calc((100% - 960px)/2)) 4px;flex-wrap:wrap;overflow:visible}',
+    '.kiosk .chips button{font-size:18px;padding:11px 20px}',
+    '.kiosk form{padding:12px max(18px,calc((100% - 960px)/2)) 10px}',
+    '.kiosk input{font-size:21px;padding:16px 22px}',
+    '.kiosk .send{width:62px;height:62px}',
+    '.kiosk .mic{width:86px;height:86px;background:var(--o);color:#fff;border:0;box-shadow:0 10px 28px rgba(255,107,26,.4)}',
+    '.kiosk .mic svg{width:36px;height:36px}.kiosk .send svg{width:26px;height:26px}',
+    '.kiosk .hello h3{font-size:26px}.kiosk .hello p{font-size:18px}',
+    '.kiosk .tiles{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}',
+    '.kiosk .tile{font-size:18px;padding:16px;border-radius:18px}.kiosk .tile em{font-size:28px}',
+    '.kiosk .ci .nm{font-size:17px}.kiosk .qty button{width:40px;height:40px;font-size:20px}',
+    '.kiosk .tot{font-size:21px}',
+    '.kiosk .sh-body{padding-inline:max(0px,calc((100% - 760px)/2))}',
+    '.kiosk .sh-sec h3{font-size:28px}.kiosk .sh-sec p,.kiosk .nr,.kiosk .ing{font-size:18px}',
+    '.kiosk .sh-buy button{font-size:19px;padding:14px 26px}',
+    '.kiosk .foot{display:none}',
+    '.attract{position:fixed;inset:0;z-index:2147483300;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:32px;text-align:center;color:#fff;background:radial-gradient(circle at 50% 30%,#ff8a3d,var(--o) 45%,#b8410a);cursor:pointer}',
+    '.attract[hidden]{display:none}',
+    '.attract .av{width:120px;height:120px;box-shadow:0 0 0 10px rgba(255,255,255,.18);font-size:48px}',
+    '.attract h2{margin:0;font-size:clamp(30px,6vw,58px);line-height:1.2}',
+    '.attract p{margin:0;font-size:clamp(18px,2.6vw,26px);opacity:.95;max-width:720px}',
+    '.attract .car{width:min(420px,70vw);aspect-ratio:4/3;border-radius:28px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.3);background:rgba(255,255,255,.15)}',
+    '.attract .car img{width:100%;height:100%;object-fit:cover;animation:fade 4s ease-in-out infinite}',
+    '@keyframes fade{0%,100%{opacity:.25}15%,85%{opacity:1}}',
+    '.attract .go{display:flex;flex-wrap:wrap;gap:14px;justify-content:center}',
+    '.attract .go button{font:inherit;font-size:22px;font-weight:800;border-radius:999px;padding:18px 34px;cursor:pointer;border:3px solid #fff;background:#fff;color:var(--o2)}',
+    '.attract .go button+button{background:transparent;color:#fff}',
+    '.attract .lg{position:absolute;top:22px;inset-inline-end:22px;font:inherit;font-size:18px;font-weight:700;color:#fff;background:rgba(255,255,255,.18);border:2px solid rgba(255,255,255,.6);border-radius:999px;padding:8px 20px;cursor:pointer}',
+    '.still{position:fixed;inset:0;z-index:2147483400;display:grid;place-items:center;background:rgba(0,0,0,.55)}',
+    '.still[hidden]{display:none}',
+    '.still div{background:var(--bg);color:var(--ink);border-radius:26px;padding:30px 36px;text-align:center;display:grid;gap:12px;max-width:520px}',
+    '.still h3{margin:0;font-size:28px}.still p{margin:0;font-size:19px;color:var(--mut)}',
+    '.still button{font:inherit;font-size:21px;font-weight:800;border:0;border-radius:999px;padding:14px 30px;background:var(--o);color:#fff;cursor:pointer}',
+    '.ticket{margin-top:12px;display:grid;gap:10px;justify-items:center;text-align:center;background:var(--card);border:2px dashed var(--o);border-radius:18px;padding:16px;white-space:normal}',
+    '.ticket .no{font-size:15px;color:var(--mut)}.ticket .no b{display:block;font-size:40px;color:var(--o2);letter-spacing:.04em;font-variant-numeric:tabular-nums}',
+    '.ticket .qr{background:#fff;padding:10px;border-radius:12px}',
+    '.ticket .qr img,.ticket .qr canvas{display:block;width:220px;height:220px}',
+    '.ticket ol{margin:0;padding-inline-start:22px;text-align:start;font-size:17px;line-height:1.6}',
     'button:focus-visible,a:focus-visible{outline:2px solid var(--o);outline-offset:2px}',
     'input:focus-visible{outline:none;box-shadow:0 0 0 3px var(--os)}',
     '@media (prefers-reduced-motion:no-preference){.row{animation:in .22s ease-out}.panel:not([hidden]){animation:pop .2s ease-out}.tease:not([hidden]){animation:in .3s ease-out}@keyframes in{from{opacity:0;transform:translateY(6px)}}@keyframes pop{from{opacity:0;transform:translateY(10px) scale(.98)}}}'
   ].join('\n');
 
   var ICONS = {
+    back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>',
     send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
     close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
     reset: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>',
@@ -1090,25 +1551,45 @@
     ar: { dir: 'rtl', title: 'مساعد نهم', status: 'متصل الآن · يرد فورًا', toggle: 'English', open: 'اسأل نهم', close: 'إغلاق', reset: 'محادثة جديدة', placeholder: 'اكتب سؤالك…', send: 'إرسال', mic: 'تكلّم بدل الكتابة', listening: 'أسمعك… تكلّم الحين',
       helloT: 'أهلًا فيك في نهم 👋', helloP: 'اسألني عن أي شيء: المنيو، الأسعار، الفروع، العروض. أقدر أقترح لك وجبة، وتقدر تجهّز طلبك هنا وترسله لنا على واتساب.',
       tiles: [['🍔', 'وش تنصحني؟'], ['📋', 'المنيو والأسعار'], ['📍', 'وين فروعكم؟'], ['🔥', 'العروض']],
-      chips: ['ساعدني أطلب', 'الأكثر طلبًا', 'احنا 6 أشخاص', 'عندي 25 ريال', 'متى تفتحون؟'], morning: 'منيو الفطور', night: 'شي للسهرة 🌙', again: '🔁 اطلب طلبك السابق', againT: function (s) { return 'طلبك السابق: ' + s; }, noLast: 'ما لقيت طلب سابق محفوظ في هذا الجهاز.',
+      chips: ['ساعدني أطلب', '🎯 اختار حسب هدفي', 'الأكثر طلبًا', 'احنا 6 أشخاص', 'عندي 25 ريال', 'متى تفتحون؟'], morning: 'منيو الفطور', night: 'شي للسهرة 🌙', again: '🔁 اطلب طلبك السابق', againT: function (s) { return 'طلبك السابق: ' + s; }, noLast: 'ما لقيت طلب سابق محفوظ في هذا الجهاز.',
       ups: 'يكمّل طلبك:',
       foot: 'مساعد نهم الآلي · نهم المدينة المنورة', aiFoot: 'مدعوم بالذكاء الاصطناعي · قد يخطئ أحيانًا', waText: 'السلام عليكم، عندي استفسار', waBtn: 'واتساب الطلبات',
       sar: 'ريال', add: 'أضف للطلب', added: 'تمت الإضافة ✅', cartBar: function (n, t) { return '🛒 ' + n + (n === 1 ? ' صنف' : ' أصناف') + ' · ' + t + ' ريال'; }, viewCart: 'عرض الطلب',
       cartT: 'طلبك 🛒', cartEmpty: 'طلبك فاضي. اضغط + على أي صنف لإضافته.', branch: 'الفرع:', total: 'المجموع التقريبي', sendWa: 'أرسل الطلب على واتساب', platform: 'أو اطلب من المنصة', clear: 'امسح الطلب',
       cartNote: 'يوصل طلبك لفريق نهم على واتساب، ويأكدون معك السعر النهائي ووقت الاستلام.', pickBranch: 'اختر الفرع أول 👆',
       waOrder: function (b, lines, t) { return 'السلام عليكم 👋 أبغى أطلب من نهم\n📍 الفرع: ' + b + '\n\n' + lines.join('\n') + '\n\nالمجموع التقريبي: ' + t + ' ريال\n(الطلب من مساعد موقع نهم)'; },
-      helpful: 'مفيد؟', thanks: 'شكرًا على رأيك 🧡', sorry: 'آسفين! بنحسّن الإجابة. تقدر تسأل فريقنا على واتساب.', askItem: '💬 اسأل المساعد عن هذا الصنف', askItemQ: function (n) { return 'وش في ' + n; } },
+      helpful: 'مفيد؟', thanks: 'شكرًا على رأيك 🧡', sorry: 'آسفين! بنحسّن الإجابة. تقدر تسأل فريقنا على واتساب.', askItem: '💬 اسأل المساعد عن هذا الصنف', askItemQ: function (n) { return 'وش في ' + n; },
+      details: 'التفاصيل ›', back: 'رجوع', zoom: 'اضغط للتكبير', addTo: function (p) { return '+ أضف للطلب'; }, est: 'تقديرية',
+      nutT: '📊 القيم الغذائية', kcalOf: function (p) { return 'سعرة · ' + p + '% من احتياجك اليومي'; }, prot: 'بروتين', carb: 'كربوهيدرات', fat: 'دهون', g: 'جم', fib: 'ألياف', sug: 'سكر', salt: 'ملح',
+      dvNote: 'النسبة من الاحتياج اليومي لشخص بالغ (2000 سعرة).', choiceNote: 'القيم لاختيار قياسي، وتختلف حسب الأصناف اللي تختارها.', fullT: '🍽️ الشبع', ingT: '🧾 المكونات', alT: '⚠️ مسببات الحساسية', alNone: 'ما فيه مسببات حساسية شائعة في الوصفة القياسية.',
+      alNote: 'حسب الوصفة القياسية، والمطبخ يتعامل مع الجلوتين والحليب والبيض والسمسم والسمك والصويا. إذا عندك حساسية شديدة أكّد مع الموظف قبل الطلب.', estNote: 'القيم الغذائية والمكونات تقديرية في هذا العرض التجريبي إلى أن يعتمدها مطبخ نهم.',
+      vidT: '🎬 طريقة التحضير', vidSoon: 'هنا يظهر فيديو تحضير هذا الصنف من مطبخ نهم', tagPop: '🏆 الأكثر طلبًا', tagProt: '💪 بروتين عالي', tagLight: '🥗 أقل من 400 سعرة', tagFib: '🌾 غني بالألياف', tagSpicy: '🌶️ حار', tagKids: '👧 يحبه الأطفال', tagVeg: '🥬 بدون لحم',
+      kTiles: [['🎯', 'ساعدني أختار حسب هدفي'], ['🔥', 'الأكثر طلبًا'], ['🍔', 'وش تنصحني؟'], ['👥', 'احنا 4 أشخاص']], kChips: ['💪 بروتين عالي', '🥗 دايت', '🚫 عندي حساسية', 'منيو الفطور', 'اختار لي'],
+      kHello: 'أهلًا وسهلًا في نهم 👋', kSub: 'أنا مساعد نهم. قل لي وش تحب أو وش هدفك، وأساعدك تختار وجبتك', kTalk: '🎙️ تكلّم معي', kStart: '👆 اضغط للبدء', kGreet: 'أهلًا وسهلًا في نهم! وش تشتهي اليوم؟ أقدر أقترح لك حسب ذوقك أو هدفك.',
+      kStill: 'لسا معي؟ 👋', kStillP: function (n) { return 'بنبدأ محادثة جديدة خلال ' + n + ' ثانية'; }, kStay: 'أنا هنا', kVoice: 'الرد الصوتي', kConfirm: '✅ أكّد الطلب', kTicket: 'طلبك جاهز 🎉', kNo: 'رقم طلبك',
+      kSteps: ['امسح الكود بجوالك وأرسل الطلب على واتساب', 'ادفع واستلم طلبك من الكاشير برقم الطلب'], kNoQr: 'اذكر رقم الطلب للكاشير، وادفع واستلم طلبك.', kNew: 'طلب جديد',
+      kWa: function (no, b, lines, t) { return 'طلب من مساعد نهم في الفرع 🧾 رقم ' + no + '\n📍 ' + b + '\n' + lines.join('\n') + '\nالمجموع التقريبي: ' + t + ' ريال'; } },
     en: { dir: 'ltr', title: 'Nahem Assistant', status: 'Online · replies instantly', toggle: 'عربي', open: 'Ask Nahem', close: 'Close', reset: 'New chat', placeholder: 'Type your question…', send: 'Send', mic: 'Speak instead of typing', listening: 'Listening… speak now',
       helloT: 'Welcome to Nahem 👋', helloP: 'Ask me anything: menu, prices, branches, offers. I can suggest a meal, and you can build your order here and send it to us on WhatsApp.',
       tiles: [['🍔', 'What do you recommend?'], ['📋', 'Menu & prices'], ['📍', 'Where are you?'], ['🔥', 'Offers']],
-      chips: ['Help me order', 'Best sellers', 'We are 6 people', 'I have 25 SAR', 'Opening hours'], morning: 'Breakfast menu', night: 'Late-night food 🌙', again: '🔁 Order my last order again', againT: function (s) { return 'Your last order: ' + s; }, noLast: "I couldn't find a saved previous order on this device.",
+      chips: ['Help me order', '🎯 Choose for my goal', 'Best sellers', 'We are 6 people', 'I have 25 SAR', 'Opening hours'], morning: 'Breakfast menu', night: 'Late-night food 🌙', again: '🔁 Order my last order again', againT: function (s) { return 'Your last order: ' + s; }, noLast: "I couldn't find a saved previous order on this device.",
       ups: 'Goes well with your order:',
       foot: "Nahem's automated assistant · Madinah", aiFoot: 'AI-powered · may occasionally be wrong', waText: 'Hello, I have a question', waBtn: 'WhatsApp orders',
       sar: 'SAR', add: 'Add to order', added: 'Added ✅', cartBar: function (n, t) { return '🛒 ' + n + (n === 1 ? ' item' : ' items') + ' · ' + t + ' SAR'; }, viewCart: 'View order',
       cartT: 'Your order 🛒', cartEmpty: 'Your order is empty. Tap + on any item to add it.', branch: 'Branch:', total: 'Estimated total', sendWa: 'Send order on WhatsApp', platform: 'Or order on the platform', clear: 'Clear order',
       cartNote: 'Your order goes to the Nahem team on WhatsApp, who confirm the final price and pickup time.', pickBranch: 'Pick a branch first 👆',
       waOrder: function (b, lines, t) { return 'Hello 👋 I would like to order from Nahem\n📍 Branch: ' + b + '\n\n' + lines.join('\n') + '\n\nEstimated total: ' + t + ' SAR\n(order from the Nahem website assistant)'; },
-      helpful: 'Helpful?', thanks: 'Thanks for the feedback 🧡', sorry: "Sorry about that! We'll improve this answer. You can also ask our team on WhatsApp.", askItem: '💬 Ask the assistant about this item', askItemQ: function (n) { return "What's in " + n; } }
+      helpful: 'Helpful?', thanks: 'Thanks for the feedback 🧡', sorry: "Sorry about that! We'll improve this answer. You can also ask our team on WhatsApp.", askItem: '💬 Ask the assistant about this item', askItemQ: function (n) { return "What's in " + n; },
+      details: 'Details ›', back: 'Back', zoom: 'Tap to zoom', addTo: function (p) { return '+ Add to order'; }, est: 'estimated',
+      nutT: '📊 Nutrition', kcalOf: function (p) { return 'kcal · ' + p + '% of your daily needs'; }, prot: 'Protein', carb: 'Carbs', fat: 'Fat', g: 'g', fib: 'Fibre', sug: 'Sugar', salt: 'Salt',
+      dvNote: '% of the daily needs of an adult (2000 kcal).', choiceNote: 'Values are for a standard choice and change with what you pick.', fullT: '🍽️ Fullness', ingT: '🧾 Ingredients', alT: '⚠️ Allergens', alNone: 'No common allergens in the standard recipe.',
+      alNote: 'Based on the standard recipe; the kitchen handles gluten, milk, egg, sesame, fish and soy. With a severe allergy, please confirm with our staff before ordering.', estNote: 'Nutrition and ingredients are estimates in this demo until the Nahem kitchen confirms them.',
+      vidT: '🎬 How it is made', vidSoon: "The Nahem kitchen's preparation video for this item goes here", tagPop: '🏆 Best seller', tagProt: '💪 High protein', tagLight: '🥗 Under 400 kcal', tagFib: '🌾 High fibre', tagSpicy: '🌶️ Spicy', tagKids: '👧 Kids love it', tagVeg: '🥬 Meat-free',
+      kTiles: [['🎯', 'Help me choose for my goal'], ['🔥', 'Best sellers'], ['🍔', 'What do you recommend?'], ['👥', 'We are 4 people']], kChips: ['💪 High protein', '🥗 Diet', '🚫 I have an allergy', 'Breakfast menu', 'Surprise me'],
+      kHello: 'Welcome to Nahem 👋', kSub: "I'm the Nahem assistant. Tell me what you like or what your goal is, and I'll help you choose", kTalk: '🎙️ Talk to me', kStart: '👆 Tap to start', kGreet: 'Welcome to Nahem! What are you in the mood for? I can suggest something for your taste or your goal.',
+      kStill: 'Still there? 👋', kStillP: function (n) { return 'Starting a new chat in ' + n + ' seconds'; }, kStay: "I'm here", kVoice: 'Spoken replies', kConfirm: '✅ Confirm order', kTicket: 'Your order is ready 🎉', kNo: 'Your order number',
+      kSteps: ['Scan the code with your phone and send the order on WhatsApp', 'Pay and collect at the counter with your order number'], kNoQr: 'Tell the cashier your order number, then pay and collect.', kNew: 'New order',
+      kWa: function (no, b, lines, t) { return 'Order from the Nahem in-store assistant 🧾 No. ' + no + '\n📍 ' + b + '\n' + lines.join('\n') + '\nEstimated total: ' + t + ' SAR'; } }
   };
   /* the teaser line changes with the time of day in Madinah */
   function teaseText(lang) {
@@ -1140,6 +1621,14 @@
     var history = load('nahem-chat-history', []);   /* [{who:'me', text} | {who:'bot', r}] */
     var cart = load('nahem-chat-cart', { items: [], branch: '' });   /* items: [{ar,en,price,img,qty}] */
     var aiOff = load('nahem-chat-aioff', false), logged = 0;   /* aiOff: the server has no AI key, so skip asking it this visit */
+    /* the kiosk serves one customer after another: every visit starts clean, in the branch it stands in */
+    function kioskBranch() {
+      var b = liveData().branches.filter(function (x) { return OPT.branch && (x.id === OPT.branch || x.slug === OPT.branch || norm(x.ar) === norm(OPT.branch) || String(x.en).toLowerCase() === OPT.branch.toLowerCase()); })[0];
+      return b ? b.ar : '';
+    }
+    if (OPT.kiosk) { history = []; cart = { items: [], branch: kioskBranch() }; lang = OPT.lang || 'ar'; }
+    var voiceOn = OPT.kiosk;
+    try { if (localStorage.getItem('nahem-kiosk-voice') === 'off') voiceOn = false; } catch (e) {}
 
     function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
     function avatar() {
@@ -1171,7 +1660,9 @@
     var langBtn = el('button', 'hb'); langBtn.type = 'button';
     var resetBtn = el('button', 'ib', ICONS.reset); resetBtn.type = 'button';
     var x = el('button', 'ib', ICONS.close); x.type = 'button';
-    head.append(avatar(), ttl, langBtn, resetBtn, x);
+    var voiceBtn = el('button', 'hb'); voiceBtn.type = 'button'; voiceBtn.hidden = !OPT.kiosk;
+    head.append(avatar(), ttl, voiceBtn, langBtn, resetBtn, x);
+    if (OPT.kiosk) x.hidden = true;
     var log = el('div', 'log'); log.setAttribute('aria-live', 'polite');
     var bar = el('div', 'bar'), barTx = el('span'), barBtn = el('button'); barBtn.type = 'button';
     bar.append(barTx, barBtn);
@@ -1181,7 +1672,15 @@
     form.append(input, mic, send);
     var foot = el('div', 'foot');
     panel.append(head, log, bar, chips, form, foot);
-    wrap.append(panel, tease, fab);
+    var sheet = el('div', 'sheet'); sheet.hidden = true; sheet.setAttribute('role', 'dialog');
+    panel.appendChild(sheet);
+    var zoomBox = el('div', 'zoom'); zoomBox.hidden = true; zoomBox.setAttribute('role', 'dialog');
+    var zoomImg = el('img'), zoomCap = el('p'), zoomX = el('button', 'ib', ICONS.close); zoomX.type = 'button';
+    zoomBox.append(zoomImg, zoomCap, zoomX);
+    var attract = el('div', 'attract'); attract.hidden = true;
+    var still = el('div', 'still'); still.hidden = true;
+    wrap.append(panel, tease, fab, zoomBox, attract, still);
+    if (OPT.kiosk) wrap.classList.add('kiosk');
     root.appendChild(wrap);
 
     function T() { return UI[lang]; }
@@ -1198,6 +1697,8 @@
       mic.title = t.mic; mic.setAttribute('aria-label', t.mic);
       teaseTx.innerHTML = teaseText(lang);
       foot.textContent = aiUrl() && !aiOff ? t.aiFoot : t.foot;
+      voiceBtn.textContent = voiceOn ? '🔊' : '🔇'; voiceBtn.title = t.kVoice; voiceBtn.setAttribute('aria-label', t.kVoice); voiceBtn.setAttribute('aria-pressed', String(voiceOn));
+      zoomX.setAttribute('aria-label', t.close);
       renderBar();
     }
     function renderChips(list) {
@@ -1209,10 +1710,10 @@
     function welcome() {
       var t = T();
       var row = el('div', 'row welcome'), box = el('div', 'hello'), h = el('h3'), p = el('p'), tiles = el('div', 'tiles');
-      h.textContent = t.helloT; p.textContent = t.helloP;
-      t.tiles.forEach(function (tl) { var b = el('button', 'tile'); b.type = 'button'; b.append(el('em', '', tl[0]), document.createTextNode(tl[1])); b.onclick = function () { ask(tl[1]); }; tiles.appendChild(b); });
+      h.textContent = t.helloT; p.textContent = OPT.kiosk ? t.kSub : t.helloP;
+      (OPT.kiosk ? t.kTiles : t.tiles).forEach(function (tl) { var b = el('button', 'tile'); b.type = 'button'; b.append(el('em', '', tl[0]), document.createTextNode(tl[1])); b.onclick = function () { ask(tl[1]); }; tiles.appendChild(b); });
       box.append(h, p, tiles);
-      var last = lastOrder();
+      var last = OPT.kiosk ? null : lastOrder();   /* a kiosk never shows the previous customer's order */
       if (last) {
         var again = el('button', 'tile again'); again.type = 'button';
         again.append(el('em', '', '🔁'), document.createTextNode(t.againT(last.items.map(function (i) { return i.qty + '× ' + (lang === 'en' ? i.en : i.ar); }).join('، ').slice(0, 60))));
@@ -1223,7 +1724,7 @@
       log.appendChild(row);
       /* the first suggestion follows the time of day in Madinah */
       var h0 = riyadhHour(), first = h0 >= 4 && h0 < 11 ? t.morning : (h0 >= 23 || h0 < 4) ? t.night : null;
-      renderChips((first ? [first] : []).concat(last ? [t.again] : []).concat(t.chips).slice(0, 6));
+      renderChips(OPT.kiosk ? t.kChips : (first ? [first] : []).concat(last ? [t.again] : []).concat(t.chips).slice(0, 6));
     }
     function lastOrder() { try { var o = JSON.parse(localStorage.getItem('nahem-chat-last-order') || 'null'); return o && o.items && o.items.length ? o : null; } catch (e) { return null; } }
     function reorder() {
@@ -1298,6 +1799,18 @@
       var tot = el('div', 'tot'); tot.append(el('span', '', t.total), el('span', '', cartTotal() + ' ' + t.sar));
       var note = el('div', 'cnote'); note.textContent = t.cartNote;
       var btns = el('div', 'btns');
+      if (OPT.kiosk) {
+        var ok = el('button', 'p'); ok.type = 'button'; ok.textContent = t.kConfirm;
+        ok.onclick = function () {
+          if (!cart.branch) { br.classList.remove('need'); void br.offsetWidth; br.classList.add('need'); return; }
+          showTicket();
+        };
+        var clr0 = el('button'); clr0.type = 'button'; clr0.textContent = t.clear; clr0.onclick = function () { cart.items = []; cartChanged(); };
+        btns.append(ok, clr0);
+        if (!kioskBranch()) box.appendChild(br);
+        box.append(tot, btns);
+        return;
+      }
       var waBtn = el('a', 'wa'); waBtn.innerHTML = ICONS.wa; waBtn.appendChild(document.createTextNode(t.sendWa));
       waBtn.href = '#'; waBtn.target = '_blank'; waBtn.rel = 'noopener';
       var branch = d.branches.filter(function (b) { return b.ar === cart.branch; })[0];
@@ -1315,6 +1828,241 @@
     }
     function cartBubble() { return { text: T().cartT, showCart: true, lang: lang }; }
 
+    /* ---------- close-up photos, videos and the product sheet ---------- */
+    var zoomFrom = null;
+    function closeZoom() { zoomBox.hidden = true; if (zoomFrom && zoomFrom.isConnected) zoomFrom.focus(); }
+    function zoom(src, cap) {
+      zoomFrom = root.activeElement || null;
+      zoomImg.src = src; zoomImg.alt = cap || ''; zoomCap.textContent = cap || '';
+      zoomBox.classList.remove('in'); zoomBox.hidden = false; zoomX.focus();
+      track('nahem_chat_zoom', { item: cap });
+    }
+    zoomImg.onclick = function (e) {
+      var rc = zoomImg.getBoundingClientRect();
+      zoomImg.style.transformOrigin = ((e.clientX - rc.left) / rc.width * 100) + '% ' + ((e.clientY - rc.top) / rc.height * 100) + '%';
+      zoomBox.classList.toggle('in');
+    };
+    zoomX.onclick = closeZoom;
+    zoomBox.onclick = function (e) { if (e.target === zoomBox) closeZoom(); };
+    function videoEl(src, it) {
+      var yt = String(src).match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{6,})/);
+      if (yt) {
+        var f = el('iframe', 'vid'); f.src = 'https://www.youtube-nocookie.com/embed/' + yt[1] + '?rel=0&playsinline=1';
+        f.allow = 'encrypted-media; picture-in-picture'; f.setAttribute('allowfullscreen', ''); f.title = it ? (lang === 'en' ? it.en : it.ar) : 'video';
+        f.style.aspectRatio = '16/9';
+        return f;
+      }
+      var v = el('video', 'vid'); v.src = src; v.controls = true; v.playsInline = true; v.preload = 'metadata';
+      if (it) v.poster = bigPhoto(it);
+      v.addEventListener('play', function () { track('nahem_chat_video', { item: it && it.ar }); });
+      return v;
+    }
+    function sec(title, extra) {
+      var s = el('div', 'sh-sec'), h = el('h4');
+      h.textContent = title;
+      if (extra) h.appendChild(extra);
+      s.appendChild(h);
+      return s;
+    }
+    function openSheet(it0) {
+      var t = T(), d = liveData(), en = lang === 'en';
+      var it = d.items.filter(function (i) { return i.ar === it0.ar; })[0] || it0;
+      var name = en ? it.en : it.ar, n = nutri(it), fl = fullness(it), al = allergensOf(it), ing = ingredientsOf(it, lang);
+      var choice = CHOICE.indexOf(it.ar) !== -1, tags = ' ' + (it.tags || '') + ' ';
+      sheet.textContent = ''; sheet.setAttribute('dir', t.dir); sheet.setAttribute('aria-label', name);
+      var top = el('div', 'sh-top'), back = el('button', 'ib sh-back', ICONS.back), tt = el('b');
+      back.type = 'button'; back.setAttribute('aria-label', t.back); back.onclick = closeSheet; tt.textContent = name;
+      top.append(back, tt);
+      var body = el('div', 'sh-body');
+      /* the close-up photo: tap for full screen */
+      if (it.img) {
+        var hero = el('button', 'sh-hero'), img = el('img'); hero.type = 'button';
+        img.alt = name; img.src = bigPhoto(it);
+        img.onerror = function () { if (img.src.indexOf(OPT.thumbs) === -1 && photo(it)) img.src = photo(it); else hero.remove(); };
+        hero.append(img, el('span', '', '🔍 ' + t.zoom)); hero.setAttribute('aria-label', t.zoom + ': ' + name);
+        hero.onclick = function () { zoom(img.src, name); };
+        body.appendChild(hero);
+      }
+      /* name, description, price and add */
+      var info = el('div', 'sh-sec'), h3 = el('h3'), p = el('p');
+      h3.textContent = name; p.textContent = en ? it.dEn : it.dAr;
+      var buy = el('div', 'sh-buy'), pr = el('em'), add = el('button');
+      pr.textContent = it.price + ' ' + t.sar; add.type = 'button'; add.textContent = t.addTo(it.price);
+      add.onclick = function () { addItem(it, 1); add.textContent = '✓ ' + t.added; add.classList.add('ok'); setTimeout(function () { add.textContent = t.addTo(it.price); add.classList.remove('ok'); }, 1400); };
+      buy.append(pr, add);
+      var tg = el('div', 'tags');
+      [[(d.popular || []).indexOf(it) !== -1 || tags.indexOf(' popular ') !== -1, t.tagPop], [n && n.p >= 25, t.tagProt], [n && n.kcal <= 400 && n.kcal >= 150 && it.cat !== 'drinks', t.tagLight],
+        [n && n.fib >= 6, t.tagFib], [/هلابينو|jalape/i.test(it.dAr + it.dEn), t.tagSpicy], [tags.indexOf(' kids ') !== -1, t.tagKids], [tags.indexOf(' veg ') !== -1, t.tagVeg]]
+        .forEach(function (x) { if (x[0]) tg.appendChild(el('span', '', x[1])); });
+      info.append(h3, p, buy);
+      if (tg.childElementCount) info.appendChild(tg);
+      body.appendChild(info);
+      /* how it is made: the kitchen's video, or (on demo pages) where it will go */
+      var vid = MEDIA[it.ar] && MEDIA[it.ar].video;
+      if (vid || OPT.demo) {
+        var vs = sec(t.vidT);
+        if (vid) vs.appendChild(videoEl(vid, it));
+        else { var soon = el('div', 'soon'); soon.append(el('b', '', '🎬'), document.createTextNode(t.vidSoon)); vs.appendChild(soon); }
+        body.appendChild(vs);
+      }
+      /* nutrition: calories and their breakdown, then fibre, sugar and salt against daily needs */
+      if (n) {
+        var ns = sec(t.nutT, n.est ? el('span', 'est', t.est) : null);
+        var kc = el('div', 'kc'); kc.append(el('b', '', String(n.kcal)), el('span', '', t.kcalOf(Math.round(n.kcal * 100 / DV.kcal))));
+        ns.appendChild(kc);
+        var e = n.p * 4 + n.c * 4 + n.f * 9;
+        if (e) {
+          var cols = { p: '#16a34a', c: '#f59e0b', f: '#e4560a' }, stack = el('div', 'stack'), leg = el('div', 'leg');
+          [['p', n.p, 4, t.prot], ['c', n.c, 4, t.carb], ['f', n.f, 9, t.fat]].forEach(function (m) {
+            var pc = Math.round(m[1] * m[2] * 100 / e), bar = el('i'), cell = el('div'), lab = el('small'), dot = el('i');
+            bar.style.width = pc + '%'; bar.style.background = cols[m[0]]; stack.appendChild(bar);
+            dot.style.background = cols[m[0]]; lab.append(dot, document.createTextNode(m[3] + ' · ' + pc + '%'));
+            cell.append(el('b', '', m[1] + ' ' + t.g), lab); leg.appendChild(cell);
+          });
+          ns.append(stack, leg);
+        }
+        [[t.fib, n.fib, t.g, n.fib / DV.fib], [t.sug, n.sug, t.g, n.sug / DV.sug], [t.salt, n.salt, t.g, n.na / DV.na]].forEach(function (r0) {
+          var row = el('div', 'nr'), dv = el('div', 'dv'), bar = el('i');
+          bar.style.width = Math.min(100, Math.round(r0[3] * 100)) + '%'; dv.appendChild(bar);
+          dv.title = Math.round(r0[3] * 100) + '%';
+          row.append(el('div', '', r0[0]), el('span', '', r0[1] + ' ' + r0[2] + ' · ' + Math.round(r0[3] * 100) + '%'), dv);
+          ns.appendChild(row);
+        });
+        ns.appendChild(el('div', 'dvn', t.dvNote + (choice ? ' ' + t.choiceNote : '')));
+        body.appendChild(ns);
+      }
+      if (fl) {
+        var fs = sec(t.fullT), mt = el('div', 'meter');
+        for (var k = 1; k <= 5; k++) mt.appendChild(el('i', k <= fl ? 'on' : ''));
+        mt.appendChild(el('span', '', FULL[en ? 'en' : 'ar'][fl]));
+        mt.setAttribute('aria-label', FULL[en ? 'en' : 'ar'][fl] + ' ' + fl + '/5');
+        fs.appendChild(mt); body.appendChild(fs);
+      }
+      if (ing) {
+        var is = sec(t.ingT), ul = el('ul', 'ing');
+        ing.forEach(function (x) { ul.appendChild(el('li')).textContent = x; });
+        is.appendChild(ul);
+        if (choice) is.appendChild(el('div', 'dvn', t.choiceNote));
+        body.appendChild(is);
+      }
+      if (al) {
+        var as = sec(t.alT), chips0 = el('div', 'al');
+        if (al.length) al.forEach(function (a) { chips0.appendChild(el('span', '', ALLERGENS[a][2] + ' ' + ALLERGENS[a][en ? 1 : 0])); });
+        else chips0.appendChild(el('div', 'dvn', t.alNone));
+        as.append(chips0, el('div', 'warn', t.alNote));
+        body.appendChild(as);
+      }
+      if (NUTRITION_EST && (n || ing)) body.appendChild(el('div', 'sh-sec')).appendChild(el('div', 'warn', t.estNote));
+      sheet.append(top, body);
+      sheet.hidden = false; body.scrollTop = 0;
+      if (panel.hidden) open();
+      setTimeout(function () { back.focus(); }, 30);
+      CTX.last = [it];
+      track('nahem_chat_item_sheet', { item: it.ar });
+    }
+    function closeSheet() { sheet.hidden = true; sheet.textContent = ''; input.focus(); }
+
+    /* ---------- the in-store kiosk: order ticket, spoken replies, welcome screen, reset between customers ---------- */
+    function ticketEl(tk) {
+      var t = UI[tk.lang] || T(), box = el('div', 'ticket'), no = el('div', 'no');
+      no.append(document.createTextNode(t.kNo), el('b', '', tk.no));
+      box.appendChild(no);
+      var qr = el('div', 'qr'), drew = false;
+      if (window.QRCode) {
+        try { new window.QRCode(qr, { text: tk.url, width: 220, height: 220, correctLevel: window.QRCode.CorrectLevel.M }); drew = true; } catch (e) {}
+      }
+      var ol = el('ol');
+      if (drew) { box.appendChild(qr); t.kSteps.forEach(function (s) { ol.appendChild(el('li')).textContent = s; }); box.appendChild(ol); }
+      else box.appendChild(el('div', '', t.kNoQr));
+      var nw = el('div', 'btns'), b = el('button', 'p'); b.type = 'button'; b.textContent = t.kNew; b.onclick = function () { kioskReset(); };
+      nw.appendChild(b); box.appendChild(nw);
+      return box;
+    }
+    function showTicket() {
+      var t = T(), d = liveData(), no = 'N' + (100 + Math.floor(Math.random() * 900));
+      var b = d.branches.filter(function (x) { return x.ar === cart.branch; })[0];
+      var lines = cart.items.map(function (i) { return i.qty + ' × ' + (lang === 'en' ? i.en : i.ar); });
+      var url = wa(d.settings.whatsapp, t.kWa(no, b ? (lang === 'en' ? b.en : b.ar) : '', lines, cartTotal()));
+      report('order', { q: cart.items.map(function (i) { return i.qty + 'x ' + i.ar; }).join(', '), total: cartTotal(), branch: cart.branch, kiosk: no });
+      track('nahem_chat_kiosk_order', { total: cartTotal(), items: cartCount(), branch: cart.branch });
+      botSay({ text: t.kTicket + '\n' + lines.join('\n') + '\n' + t.total + ': ' + cartTotal() + ' ' + t.sar, ticket: { no: no, url: url, lang: lang }, lang: lang });
+    }
+    var speakable = function (s) {
+      return String(s || '').replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/gu, '').replace(/[•▸›]/g, '').replace(/\(([^)]*)\)/g, '، $1،').replace(/\s*\n+\s*/g, '. ').replace(/\s{2,}/g, ' ').trim().slice(0, 380);
+    };
+    function speak(text) {
+      if (!OPT.kiosk || !voiceOn || !window.speechSynthesis || !window.SpeechSynthesisUtterance) return;
+      try {
+        window.speechSynthesis.cancel();
+        var u = new SpeechSynthesisUtterance(speakable(text)), want = lang === 'en' ? 'en' : 'ar';
+        u.lang = lang === 'en' ? 'en-US' : 'ar-SA'; u.rate = 1;
+        var v = window.speechSynthesis.getVoices().filter(function (x) { return x.lang && x.lang.toLowerCase().indexOf(want) === 0; });
+        if (v.length) u.voice = v.filter(function (x) { return /SA|google/i.test(x.lang + x.name); })[0] || v[0];
+        window.speechSynthesis.speak(u);
+      } catch (e) {}
+    }
+    function hush() { try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) {} }
+    var idleAt = Date.now(), stillTimer = null, carTimer = null;
+    function showAttract() {
+      var t = T(), d = liveData();
+      attract.textContent = ''; attract.setAttribute('dir', t.dir);
+      var lg = el('button', 'lg'); lg.type = 'button'; lg.textContent = t.toggle;
+      lg.onclick = function (e) { e.stopPropagation(); setLang(lang === 'ar' ? 'en' : 'ar'); showAttract(); };
+      var car = el('div', 'car'), cim = el('img'); cim.alt = '';
+      var pics = (d.popular || []).concat(byNames(d, ['دبل سماش لحم', 'برجر دجاج زنجر', 'بوكس البرجر', 'ديناميت دجاج', 'حيسة نهم'])).filter(function (i) { return i.img; });
+      var ix = 0, next = function () { if (pics.length) { cim.src = bigPhoto(pics[ix % pics.length]); ix++; } };
+      cim.onerror = function () { var it = pics[(ix - 1) % pics.length]; if (it && cim.src.indexOf(OPT.thumbs) === -1) cim.src = photo(it); };
+      next(); clearInterval(carTimer); carTimer = setInterval(next, 4000);
+      car.appendChild(cim);
+      var go = el('div', 'go'), talk = el('button'), start = el('button');
+      talk.type = start.type = 'button'; talk.textContent = t.kTalk; start.textContent = t.kStart;
+      talk.onclick = function (e) { e.stopPropagation(); wake(false); setTimeout(function () { if (!mic.hidden) mic.click(); }, 350); };
+      start.onclick = function (e) { e.stopPropagation(); wake(true); };
+      go.append(talk, start);
+      attract.append(lg, avatar(), el('h2', '', t.kHello), el('p', '', t.kSub), car, go);
+      attract.onclick = function () { wake(true); };
+      attract.hidden = false;
+    }
+    /* someone is here: leave the welcome screen and greet them (also called by kiosk.html's motion sensor) */
+    function wake(greet) {
+      if (!OPT.kiosk || attract.hidden) return;
+      attract.hidden = true; clearInterval(carTimer); idleAt = Date.now();
+      if (greet) speak(T().kGreet);
+      input.focus();
+      track('nahem_chat_kiosk_wake', { language: lang });
+    }
+    function kioskReset() {
+      hush(); if (rec) rec.stop();
+      still.hidden = true; clearInterval(stillTimer);
+      history = []; cart.items = []; cart.branch = kioskBranch(); CTX.last = []; CTX.topic = null; CTX.goal = null; CTX.wiz = null;
+      zoomBox.hidden = true; closeSheet(); cartChanged();
+      if ((OPT.lang || 'ar') !== lang) setLang(OPT.lang || 'ar'); else rebuild();
+      showAttract();
+    }
+    function stillThere() {
+      var t = T(), n = 15, box = el('div'), p = el('p'), b = el('button');
+      still.textContent = ''; b.type = 'button'; b.textContent = t.kStay;
+      p.textContent = t.kStillP(n);
+      box.append(el('h3', '', t.kStill), p, b); still.appendChild(box); still.setAttribute('dir', t.dir);
+      still.hidden = false;
+      b.onclick = function () { still.hidden = true; clearInterval(stillTimer); idleAt = Date.now(); };
+      clearInterval(stillTimer);
+      stillTimer = setInterval(function () { n--; p.textContent = t.kStillP(n); if (n <= 0) kioskReset(); }, 1000);
+    }
+    if (OPT.kiosk) {
+      ['pointerdown', 'keydown', 'input', 'wheel', 'touchstart'].forEach(function (ev) { root.addEventListener(ev, function () { idleAt = Date.now(); }, { passive: true }); });
+      setInterval(function () {
+        if (!attract.hidden || !still.hidden) return;
+        var used = history.length || cart.items.length;
+        if (Date.now() - idleAt > (used ? 75000 : 45000)) { if (used) stillThere(); else kioskReset(); }
+      }, 3000);
+      voiceBtn.onclick = function () {
+        voiceOn = !voiceOn; if (!voiceOn) hush();
+        try { localStorage.setItem('nahem-kiosk-voice', voiceOn ? 'on' : 'off'); } catch (e) {}
+        render();
+      };
+    }
+
     /* ---------- messages ---------- */
     function bubble(who, r, live) {
       var row = el('div', 'row ' + (who === 'me' ? 'me' : 'bot'));
@@ -1328,24 +2076,47 @@
           var c = el('div', 'card'), nm = el('div', 'nm'), b = el('b'), sp = el('span'), pr = el('em'), add = el('button', 'add', '+');
           b.textContent = rl === 'en' ? i.en : i.ar; sp.textContent = rl === 'en' ? i.dEn : i.dAr; var kc = kcalOf(i); pr.textContent = i.price + ' ' + t.sar + (kc && kc.n ? ' · ' + (kc.est ? '~' : '') + kc.n + (rl === 'en' ? ' kcal' : ' سعرة') : '');
           add.type = 'button'; add.title = t.add; add.setAttribute('aria-label', t.add + ': ' + b.textContent);
-          add.onclick = function () { addItem(i, 1); add.textContent = '✓'; add.classList.add('ok'); setTimeout(function () { add.textContent = '+'; add.classList.remove('ok'); }, 1200); };
+          add.onclick = function (e) { e.stopPropagation(); addItem(i, 1); add.textContent = '✓'; add.classList.add('ok'); setTimeout(function () { add.textContent = '+'; add.classList.remove('ok'); }, 1200); };
+          /* the rest of the card opens the product sheet */
+          c.setAttribute('role', 'button'); c.tabIndex = 0; c.setAttribute('aria-label', b.textContent + ' · ' + t.details);
+          c.onclick = function () { openSheet(i); };
+          c.onkeydown = function (e) { if ((e.key === 'Enter' || e.key === ' ') && e.target === c) { e.preventDefault(); openSheet(i); } };
+          pr.appendChild(el('span', 'more', t.details));
           var th = thumb(i); if (th) c.appendChild(th);
           nm.append(b, sp, pr); c.append(nm, add); cards.appendChild(c);
         });
         m.appendChild(cards);
       }
+      if (r.video) m.appendChild(videoEl(r.video, r.photo));
+      else if (r.photo) {
+        var ph = el('button', 'ph'), pim = el('img'); ph.type = 'button';
+        var pName = rl === 'en' ? r.photo.en : r.photo.ar;
+        pim.alt = pName; pim.src = bigPhoto(r.photo);
+        pim.onerror = function () { if (pim.src.indexOf(OPT.thumbs) === -1 && photo(r.photo)) pim.src = photo(r.photo); else ph.remove(); };
+        ph.append(pim, el('span', '', '🔍 ' + t.zoom)); ph.setAttribute('aria-label', t.zoom + ': ' + pName);
+        ph.onclick = function () { zoom(pim.src, pName); };
+        m.appendChild(ph);
+      }
+      if (r.ticket) m.appendChild(ticketEl(r.ticket));
       /* cards, basket and buttons follow the chat's language direction, not the text above them */
       if (r.showCart) { var cv = el('div', 'cartv'); cv.setAttribute('dir', T().dir); fillCart(cv); cartViews.push(cv); m.appendChild(cv); }
       if ((r.actions && r.actions.length) || (r.buttons && r.buttons.length)) {
         var row2 = el('div', 'btns'); row2.setAttribute('dir', T().dir);
         (r.actions || []).forEach(function (a) {
+          if (a.sheet) {
+            var sb = el('button', 's'); sb.type = 'button'; sb.textContent = a.label;
+            sb.onclick = function () { openSheet(a.sheet); };
+            row2.appendChild(sb);
+            return;
+          }
           var bt = el('button', 'p'); bt.type = 'button'; bt.textContent = '🛒 ' + a.label;
           bt.onclick = function () { a.add.forEach(function (x) { addItem(x[1], x[0]); }); botSay(Object.assign(cartBubble(), { text: T().added })); };
           row2.appendChild(bt);
         });
-        (r.buttons || []).forEach(function (b) {
+        /* a kiosk keeps the customer in the assistant: no links out to WhatsApp, the app stores or the platform */
+        (OPT.kiosk ? [] : r.buttons || []).forEach(function (b) {
           if (!b || !b.href) return;
-          var a = el('a', b.primary && !(r.actions && r.actions.length) ? 'p' : ''); a.href = b.href; a.textContent = b.label;
+          var a = el('a', b.primary && !(r.actions || []).some(function (x) { return x.add; }) ? 'p' : ''); a.href = b.href; a.textContent = b.label;
           if (!/^\//.test(b.href) && b.href.indexOf(location.origin) !== 0) { a.target = '_blank'; a.rel = 'noopener'; }
           a.addEventListener('click', function () { track('nahem_chat_click', { cta: b.label, href: b.href }); });
           row2.appendChild(a);
@@ -1385,6 +2156,7 @@
       remember({ who: 'bot', r: r });
       bubble('bot', r, true);
       if (r.chips) renderChips(r.chips); else if (!r.showCart) renderChips(null);
+      if (OPT.kiosk) speak(r.text);
     }
 
     /* ---------- asking ---------- */
@@ -1392,6 +2164,7 @@
     function ask(text) {
       text = String(text || '').trim();
       if (!text || busy) return;
+      if (!sheet.hidden) closeSheet();
       input.value = '';
       var n = norm(text);
       /* "English", "تكلم انجليزي", "speak arabic" switch the chat language */
@@ -1462,6 +2235,7 @@
     mic.hidden = !Speech;
     mic.onclick = function () {
       if (rec) { rec.stop(); return; }
+      hush();
       try { rec = new Speech(); } catch (e) { mic.hidden = true; return; }
       rec.lang = lang === 'en' ? 'en-US' : 'ar-SA';
       rec.interimResults = true;
@@ -1489,7 +2263,7 @@
       try { localStorage.setItem('nahem-chat-lang', l); } catch (e) {}
       render(); rebuild();
     }
-    function reset() { history = []; save('nahem-chat-history', []); CTX.last = []; CTX.topic = null; rebuild(); input.focus(); }
+    function reset() { history = []; save('nahem-chat-history', []); CTX.last = []; CTX.topic = null; CTX.goal = null; hush(); closeSheet(); rebuild(); input.focus(); }
     function open() {
       tease.hidden = true; markTeased();
       panel.hidden = false; fab.hidden = window.matchMedia('(max-width:480px)').matches; render();
@@ -1508,7 +2282,13 @@
     barBtn.onclick = showCart;
     langBtn.onclick = function () { setLang(lang === 'ar' ? 'en' : 'ar'); };
     form.addEventListener('submit', function (e) { e.preventDefault(); ask(input.value); });
-    panel.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+    /* Escape closes the zoom, then the product sheet, then the chat */
+    wrap.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape') return;
+      if (!zoomBox.hidden) closeZoom();
+      else if (!sheet.hidden) closeSheet();
+      else if (!OPT.kiosk) close();
+    });
 
     /* sit above the site's own bottom bar on phones (.mobile-actions on nahem24.com) */
     function lift() {
@@ -1543,12 +2323,17 @@
     }
 
     render();
-    if (OPT.open) open();
+    if (OPT.kiosk) { open(); showAttract(); }
+    else if (OPT.open) open();
     else {
       var teased = false; try { teased = sessionStorage.getItem('nahem-chat-teased') === '1'; } catch (e) {}
       if (!teased) setTimeout(function () { if (panel.hidden) { teaseTx.innerHTML = teaseText(lang); tease.hidden = false; } }, 5000);
     }
-    window.NahemChat = { open: open, close: close, setLang: setLang, reset: reset, showCart: showCart, ask: function (q) { if (panel.hidden) open(); ask(q); }, answer: answer };
+    window.NahemChat = { open: open, close: close, setLang: setLang, reset: reset, showCart: showCart, ask: function (q) { if (panel.hidden) open(); ask(q); }, answer: answer,
+      /* open an item's product sheet by its Arabic or English name, e.g. from the site's own menu */
+      openItem: function (name) { var k = norm(name), it = liveData().items.filter(function (i) { return norm(i.ar) === k || norm(i.en) === k; })[0]; if (it) openSheet(it); return !!it; },
+      kioskWake: function () { wake(true); }, kioskReset: function () { if (OPT.kiosk) kioskReset(); },
+      nutrition: function (name) { var k = norm(name), it = liveData().items.filter(function (i) { return norm(i.ar) === k || norm(i.en) === k; })[0]; return it ? { nutrition: nutri(it), allergens: allergensOf(it), ingredients: ingredientsOf(it, 'en'), fullness: fullness(it) } : null; } };
     hookItemModal();
   }
 

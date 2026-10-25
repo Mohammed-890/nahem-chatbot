@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ff6b1a">
+<title>Nahem Kiosk</title>
+<meta name="description" content="Nahem's in-store AI assistant: a full-screen, voice-enabled ordering kiosk for a tablet or service robot.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<style>
+/* The page itself is empty: the assistant (chatbot.js in kiosk mode) fills the screen.
+   This page adds what a device in the restaurant needs: staff settings, an optional camera greeting,
+   keeping the screen awake, and full screen. */
+:root { --o:#ff6b1a; --ink:#1f1a16; --bg:#fffaf6; --card:#ffffff; --line:#efe3d8; --mut:#6f665e; }
+@media (prefers-color-scheme: dark) { :root { --ink:#f3ede7; --bg:#171310; --card:#211b17; --line:#3a3029; --mut:#b4aaa1; } }
+* { box-sizing: border-box; }
+html, body { margin:0; height:100%; background:var(--bg); color:var(--ink); font-family:"IBM Plex Sans Arabic", system-ui, sans-serif; overscroll-behavior:none; }
+body { -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent; }
+/* staff corner: hold for 3 seconds to open the settings */
+#staff { position:fixed; top:0; left:0; width:64px; height:64px; z-index:2147483646; background:transparent; border:0; }
+#setup { position:fixed; inset:0; z-index:2147483647; display:grid; place-items:center; background:rgba(0,0,0,.55); padding:20px; }
+#setup[hidden] { display:none; }
+#setup form { background:var(--card); border-radius:22px; padding:24px; width:min(480px,100%); display:grid; gap:14px; box-shadow:0 30px 80px rgba(0,0,0,.35); }
+#setup h2 { margin:0; font-size:22px; }
+#setup p { margin:0; color:var(--mut); font-size:14px; line-height:1.5; }
+#setup label { display:flex; align-items:center; justify-content:space-between; gap:12px; font-weight:600; font-size:16px; padding:10px 0; border-bottom:1px solid var(--line); }
+#setup select, #setup input[type=checkbox] { font:inherit; font-size:16px; }
+#setup input[type=checkbox] { width:22px; height:22px; accent-color:var(--o); }
+#setup .row { display:flex; gap:10px; flex-wrap:wrap; }
+#setup button { font:inherit; font-weight:700; font-size:16px; border-radius:999px; padding:10px 20px; cursor:pointer; border:2px solid var(--o); background:transparent; color:var(--o); }
+#setup button.p { background:var(--o); color:#fff; }
+#cam { position:fixed; bottom:10px; left:10px; z-index:2147483645; font-size:12px; color:#fff; background:rgba(0,0,0,.45); border-radius:999px; padding:3px 10px; pointer-events:none; }
+#cam[hidden] { display:none; }
+</style>
+</head>
+<body>
+<button id="staff" type="button" aria-label="Staff settings"></button>
+
+<div id="setup" hidden role="dialog" aria-label="Kiosk settings">
+  <form id="setupForm">
+    <h2>⚙️ إعدادات الجهاز · Kiosk settings</h2>
+    <p>For restaurant staff. Settings are saved on this device.</p>
+    <label>الفرع · Branch
+      <select id="sBranch">
+        <option value="qaswa">القصواء · Al Qaswa</option>
+        <option value="ared">العريض · Al Ared</option>
+      </select>
+    </label>
+    <label>اللغة الافتراضية · Default language
+      <select id="sLang"><option value="ar">العربية</option><option value="en">English</option></select>
+    </label>
+    <label>الرد الصوتي · Spoken replies <input type="checkbox" id="sVoice"></label>
+    <label>الترحيب عند الاقتراب (الكاميرا) · Greet people who walk up (camera) <input type="checkbox" id="sMotion"></label>
+    <p>The camera only measures movement in front of the screen, on this device. No picture is stored or sent anywhere.</p>
+    <div class="row">
+      <button class="p" type="submit">حفظ · Save</button>
+      <button type="button" id="sFull">ملء الشاشة · Full screen</button>
+      <button type="button" id="sClose">إغلاق · Close</button>
+    </div>
+  </form>
+</div>
+<div id="cam" hidden>● motion greeting on</div>
+
+<script>
+  /* settings: ?branch=qaswa&lang=ar in the URL, or the staff panel (saved on the device) */
+  const params = new URLSearchParams(location.search);
+  const store = (k, v) => { try { if (v === undefined) return localStorage.getItem("nahem-kiosk-" + k); localStorage.setItem("nahem-kiosk-" + k, v); } catch (e) { return null; } };
+  const cfg = {
+    branch: params.get("branch") || store("branch") || "qaswa",
+    lang: params.get("lang") || store("lang") || "ar",
+    motion: (params.get("motion") || store("motion")) === "on"
+  };
+  /* load the assistant in kiosk mode */
+  const s = document.createElement("script");
+  s.src = "chatbot.js"; s.charset = "utf-8";
+  s.dataset.kiosk = "true"; s.dataset.branch = cfg.branch; s.dataset.lang = cfg.lang;
+  s.dataset.base = "https://nahem24.com"; s.dataset.logo = "assets/chat-logo.png"; s.dataset.thumbs = "assets/chat/"; s.dataset.photos = "assets/photos/"; s.dataset.demo = "true";
+  document.body.appendChild(s);
+
+  /* staff panel: hold the top-left corner for 3 seconds */
+  const setup = document.getElementById("setup");
+  let hold = null;
+  const staff = document.getElementById("staff");
+  staff.addEventListener("pointerdown", () => { hold = setTimeout(openSetup, 3000); });
+  ["pointerup", "pointerleave", "pointercancel"].forEach(ev => staff.addEventListener(ev, () => clearTimeout(hold)));
+  if (params.has("setup")) addEventListener("load", openSetup);
+  function openSetup() {
+    document.getElementById("sBranch").value = cfg.branch;
+    document.getElementById("sLang").value = cfg.lang;
+    document.getElementById("sVoice").checked = store("voice") !== "off";
+    document.getElementById("sMotion").checked = cfg.motion;
+    setup.hidden = false;
+  }
+  document.getElementById("sClose").onclick = () => { setup.hidden = true; };
+  document.getElementById("sFull").onclick = () => { const d = document.documentElement; (d.requestFullscreen || d.webkitRequestFullscreen || (() => {})).call(d); };
+  document.getElementById("setupForm").onsubmit = e => {
+    e.preventDefault();
+    store("branch", document.getElementById("sBranch").value);
+    store("lang", document.getElementById("sLang").value);
+    store("voice", document.getElementById("sVoice").checked ? "on" : "off");
+    store("motion", document.getElementById("sMotion").checked ? "on" : "off");
+    location.href = location.pathname;   /* reload with the saved settings */
+  };
+
+  /* keep the screen on while the kiosk runs */
+  async function stayAwake() { try { if ("wakeLock" in navigator) await navigator.wakeLock.request("screen"); } catch (e) {} }
+  stayAwake();
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") stayAwake(); });
+
+  /* optional greeting when someone walks up: compares tiny low-resolution frames for movement, on the device only */
+  async function motionGreeting() {
+    if (!cfg.motion || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+    let stream;
+    try { stream = await navigator.mediaDevices.getUserMedia({ video: { width: 160, height: 120, facingMode: "user" }, audio: false }); }
+    catch (e) { return; }
+    document.getElementById("cam").hidden = false;
+    const v = document.createElement("video"); v.muted = true; v.playsInline = true; v.srcObject = stream; await v.play();
+    const c = document.createElement("canvas"); c.width = 32; c.height = 24;
+    const g = c.getContext("2d", { willReadFrequently: true });
+    let prev = null, hits = 0, quietUntil = 0;
+    setInterval(() => {
+      g.drawImage(v, 0, 0, 32, 24);
+      const px = g.getImageData(0, 0, 32, 24).data, cur = new Uint8Array(32 * 24);
+      let diff = 0;
+      for (let i = 0; i < cur.length; i++) { cur[i] = (px[i * 4] + px[i * 4 + 1] + px[i * 4 + 2]) / 3; if (prev) diff += Math.abs(cur[i] - prev[i]); }
+      prev = cur;
+      const moving = diff / cur.length > 14;
+      hits = moving ? hits + 1 : 0;
+      if (hits >= 3 && Date.now() > quietUntil && window.NahemChat) { window.NahemChat.kioskWake(); quietUntil = Date.now() + 20000; hits = 0; }
+    }, 300);
+  }
+  addEventListener("load", motionGreeting);
+</script>
+<!-- QR codes on the order ticket, so the customer can send the order from their own phone -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</body>
+</html>
