@@ -103,5 +103,3 @@ screenshots/       images used in this README
 ## Author
 
 **Mohammed Banabilh** · Final-year BSc Computer Science with AI, Sheffield Hallam University · [GitHub](https://github.com/Mohammed-890)
-
-Built with AI pair-programming (Claude Code).
