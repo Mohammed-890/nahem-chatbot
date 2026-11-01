@@ -97,7 +97,7 @@ screenshots/       images used in this README
 ## Notes
 
 - The menu, prices, branches, logo and food photos belong to Nahem.
-- Calories marked "about" are estimates for the demo; the others come from the restaurant's printed menu. Protein, carbs, fat, fibre, sugar, salt, ingredients and allergens are demo estimates built from the menu descriptions (flagged as estimates in the chat) until the kitchen supplies lab values: they live in one table (`NUTRITION`, `RECIPE`) at the top of `chatbot.js`.
+- Calories, protein, carbs, fat and fibre for the sandwiches, burgers and fries come from the Nahem kitchen's nutrition table; meals and boxes are added up from those parts, and sugar, salt and the remaining items are estimates, flagged as such in the chat. Ingredients and allergens come from the kitchen's recipes (bread, Nahem sauce, the chicken marinade, Caesar dressing, the heisa). All of it lives in a few tables at the top of `chatbot.js` (`CALORIES`, `NUTRITION`, `ING`, `RECIPE`, `FACTS`, `MODS`).
 - WhatsApp buttons in the demo open a real chat with the restaurant, so please don't send test orders.
 
 ## Author

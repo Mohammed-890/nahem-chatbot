@@ -40,17 +40,18 @@
     'بوكس البرجر': 'burger-box', 'بطاطس': 'fries-real2', 'سلطة ملفوف': 'coleslaw-real2', 'سلطة سيزر': 'caesar-real2', 'كوكيز نهم': 'cookies', 'حيسة نهم': 'heisa',
     'عرض الحلى': 'heisa-drink', 'مشروب غازي': 'soft-drinks', 'ماء': 'water', 'كرك': 'karak', 'شاي': 'tea', 'قهوة سعودية': 'saudi-coffee', 'الصوصات': 'sauces'
   };
-  /* Calories per item. "false" = printed on the Nahem menu; "true" = an ESTIMATE for the demo,
-     shown to customers as approximate. Replace every estimate with the real figure before going live. */
+  /* Calories per item. "false" = from the Nahem kitchen's nutrition table (or the printed menu for the desserts);
+     "true" = an ESTIMATE, shown to customers as approximate (meals and boxes are added up from the kitchen's parts,
+     with the item they choose inside them). Replace every estimate with the kitchen's figure when it arrives. */
   var CALORIES = {
-    'برجر دجاج زنجر': [610, false], 'دبل سماش دجاج': [610, false], 'دبل سماش لحم': [490, false], 'ساندوتش بيج نهم': [440, false],
-    'ساندوتش دجاج فاهيتا': [340, false], 'راب دونر تركي': [360, false], 'راب تويستر': [480, false], 'ساندوتش تونة': [290, false],
-    'ساندوتش فاهيتا للفطور': [300, false], 'ساندوتش فلافل': [360, false], 'ساندوتش جبنتين': [300, false], 'ساندوتش بيض': [340, false],
-    'ساندوتش مليس': [340, false], 'حيسة نهم': [480, false], 'كوكيز نهم': [390, false],
-    'ديناميت دجاج': [480, true], 'وجبة استربس': [950, true], 'وجبة نهم': [1100, true], 'كومبو نهم': [1400, true],
-    'تشكن فرايز': [650, true], 'وجبة الإفطار': [700, true], 'بوكس الخفايف': [2400, true], 'بوكس البرجر': [3200, true],
-    'بطاطس': [320, true], 'سلطة ملفوف': [150, true], 'سلطة سيزر': [350, true], 'عرض الحلى': [560, true],
-    'مشروب غازي': [140, true], 'ماء': [0, true], 'كرك': [150, true], 'شاي': [60, true], 'قهوة سعودية': [5, true], 'الصوصات': [100, true]
+    'برجر دجاج زنجر': [606, false], 'دبل سماش دجاج': [493, false], 'دبل سماش لحم': [658, false], 'ساندوتش بيج نهم': [868, false],
+    'ساندوتش دجاج فاهيتا': [614, false], 'راب دونر تركي': [546, false], 'راب تويستر': [568, false], 'ساندوتش تونة': [272, false],
+    'ساندوتش فاهيتا للفطور': [374, false], 'ساندوتش فلافل': [375, false], 'ساندوتش جبنتين': [304, false], 'ساندوتش بيض': [302, false],
+    'ساندوتش مليس': [322, false], 'بطاطس': [319, false], 'حيسة نهم': [480, false], 'كوكيز نهم': [390, false],
+    'ديناميت دجاج': [650, true], 'وجبة استربس': [1120, true], 'وجبة نهم': [1195, true], 'كومبو نهم': [1680, true],
+    'تشكن فرايز': [670, true], 'وجبة الإفطار': [685, true], 'بوكس الخفايف': [2250, true], 'بوكس البرجر': [3420, true],
+    'سلطة ملفوف': [60, true], 'سلطة سيزر': [350, true], 'عرض الحلى': [560, true],
+    'مشروب غازي': [140, true], 'ماء': [0, true], 'كرك': [150, true], 'شاي': [60, true], 'قهوة سعودية': [5, true], 'الصوصات': [90, true]
   };
   function kcalOf(i) { var c = i && CALORIES[i.ar]; return c ? { n: c[0], est: c[1] } : null; }
   function photo(i) {
@@ -64,21 +65,24 @@
   }
 
   /* Nutrition per item: [protein g, carbs g, fat g, fibre g, sugar g, sodium mg].
-     ESTIMATES for the demo, built from typical recipes and matched to the calories above.
-     Replace them with the kitchen's lab figures before going live, then set NUTRITION_EST to false. */
-  var NUTRITION_EST = true;
+     KITCHEN items: calories, protein, carbs, fat and fibre come from the Nahem kitchen's nutrition table.
+     Everything else, and sugar and salt for every item, is an ESTIMATE for now (meals and boxes are added up from
+     the kitchen's parts: a strip is 9 g protein, a bread roll 5.3 g, a cup of fries 3.5 g). */
+  var KITCHEN = ['برجر دجاج زنجر', 'دبل سماش لحم', 'دبل سماش دجاج', 'ساندوتش بيج نهم', 'ساندوتش دجاج فاهيتا', 'راب دونر تركي', 'راب تويستر',
+    'ساندوتش بيض', 'ساندوتش جبنتين', 'ساندوتش فاهيتا للفطور', 'ساندوتش مليس', 'ساندوتش تونة', 'ساندوتش فلافل', 'بطاطس'];
   var NUTRITION = {
-    'دبل سماش لحم': [30, 38, 24, 2, 7, 980], 'دبل سماش دجاج': [34, 52, 29, 3, 7, 1250], 'برجر دجاج زنجر': [28, 58, 29, 3, 6, 1300],
-    'ديناميت دجاج': [18, 48, 24, 4, 3, 1100], 'وجبة استربس': [42, 95, 44, 7, 6, 2100], 'وجبة نهم': [40, 125, 48, 6, 40, 2000],
-    'كومبو نهم': [52, 160, 60, 8, 45, 2700], 'ساندوتش بيج نهم': [24, 40, 20, 2, 6, 1050], 'ساندوتش دجاج فاهيتا': [22, 36, 12, 3, 6, 820],
-    'راب تويستر': [24, 46, 22, 3, 4, 1150], 'راب دونر تركي': [22, 34, 15, 2, 3, 900], 'تشكن فرايز': [26, 62, 33, 5, 3, 1400],
-    'ساندوتش بيض': [15, 30, 18, 1, 5, 560], 'ساندوتش تونة': [17, 30, 11, 2, 4, 620], 'ساندوتش فاهيتا للفطور': [18, 32, 11, 2, 5, 700],
-    'ساندوتش فلافل': [11, 44, 16, 7, 4, 720], 'ساندوتش جبنتين': [12, 28, 16, 1, 4, 720], 'ساندوتش مليس': [14, 29, 19, 1, 4, 760],
-    'وجبة الإفطار': [28, 74, 32, 3, 18, 1350], 'بوكس الخفايف': [100, 250, 110, 14, 30, 5200], 'بوكس البرجر': [140, 300, 158, 20, 35, 6800],
-    'بطاطس': [4, 41, 16, 4, 0, 250], 'سلطة ملفوف': [1, 12, 11, 2, 9, 220], 'سلطة سيزر': [22, 12, 24, 3, 3, 800],
-    'كوكيز نهم': [5, 52, 18, 2, 30, 260], 'حيسة نهم': [7, 62, 23, 2, 40, 180], 'عرض الحلى': [6, 85, 22, 2, 65, 220],
+    'برجر دجاج زنجر': [27, 51, 33, 2.9, 6, 1300], 'دبل سماش لحم': [32.5, 39, 42, 1.8, 7, 1100], 'دبل سماش دجاج': [39.5, 39, 20, 1.8, 6, 1150],
+    'ساندوتش بيج نهم': [35.5, 66.5, 50.5, 4.1, 8, 1600], 'ساندوتش دجاج فاهيتا': [35.5, 61.5, 24.5, 3.8, 8, 1250], 'راب دونر تركي': [30.5, 34.5, 32, 3.1, 4, 1150],
+    'راب تويستر': [26.5, 41.5, 33, 2.8, 4, 1200], 'ساندوتش بيض': [13.5, 32, 13.5, 1.8, 5, 560], 'ساندوتش جبنتين': [9.5, 32.5, 15.5, 1.5, 4, 720],
+    'ساندوتش فاهيتا للفطور': [31, 36.5, 15.5, 2.5, 5, 800], 'ساندوتش مليس': [13.5, 32, 15.5, 1.8, 4, 760], 'ساندوتش تونة': [13, 34.5, 9, 2.1, 4, 620],
+    'ساندوتش فلافل': [10.5, 41.5, 18.5, 4.2, 4, 720], 'بطاطس': [3.5, 39.5, 16.5, 3.4, 0, 250],
+    'ديناميت دجاج': [20, 53, 40, 4, 4, 1200], 'وجبة استربس': [45, 96, 65, 6.7, 6, 2100], 'وجبة نهم': [40, 133, 58, 6.8, 40, 2100],
+    'كومبو نهم': [66, 188, 74, 10.1, 45, 2900], 'تشكن فرايز': [22, 55, 42, 3.9, 3, 1300], 'وجبة الإفطار': [27, 79, 29, 3.6, 18, 1350],
+    'بوكس الخفايف': [74, 213, 123, 13, 30, 5200], 'بوكس البرجر': [130, 275, 200, 18, 35, 7200],
+    'سلطة ملفوف': [1, 12, 0.5, 3, 8, 30], 'سلطة سيزر': [22, 12, 24, 3, 3, 800],
+    'كوكيز نهم': [5, 52, 18, 2, 30, 260], 'حيسة نهم': [9, 62, 21, 4, 45, 60], 'عرض الحلى': [6, 85, 22, 2, 65, 220],
     'مشروب غازي': [0, 36, 0, 0, 36, 30], 'ماء': [0, 0, 0, 0, 0, 5], 'كرك': [4, 22, 5, 0, 20, 60], 'شاي': [0, 15, 0, 0, 15, 5],
-    'قهوة سعودية': [0, 1, 0, 0, 0, 2], 'الصوصات': [0, 3, 10, 0, 2, 220]
+    'قهوة سعودية': [0, 1, 0, 0, 0, 2], 'الصوصات': [0, 3, 9, 0, 2, 220]
   };
   /* Allergens (the 14 most common, as on Saudi and EU food labels) and the standard-recipe ingredients that carry them.
      Built from the menu descriptions: the kitchen must confirm every line before going live. */
@@ -93,32 +97,37 @@
     nuts: ['المكسرات والفول السوداني', 'Nuts & peanuts', '🥜', ['مكسرات', 'المكسرات', 'فول سوداني', 'الفول السوداني', 'لوز', 'nuts', 'nut', 'peanut', 'peanuts', 'almond']]
   };
   var ING = {
-    brioche: ['خبز بريوش', 'Brioche bun', 'gluten egg dairy'], bread: ['خبز', 'Bread', 'gluten'], tortilla: ['خبز تورتيلا', 'Tortilla wrap', 'gluten'],
-    beef: ['لحم بقري طازج', 'Fresh beef', ''], chicken: ['دجاج طازج', 'Fresh chicken', ''], breaded: ['دجاج مقرمش مغطى بالطحين والبهارات', 'Crispy breaded chicken', 'gluten'],
-    doner: ['شرائح لحم متبلة', 'Seasoned beef slices', ''], cheese: ['جبن', 'Cheese', 'dairy'], melt: ['جبنة سائحة', 'Melted cheese', 'dairy'],
-    sauce: ['صوص نهم الخاص (أساسه مايونيز)', 'Nahem house sauce (mayo-based)', 'egg mustard'], mayo: ['مايونيز', 'Mayonnaise', 'egg'],
-    lettuce: ['خس', 'Lettuce', ''], veg: ['خضار طازجة', 'Fresh vegetables', ''], peppers: ['فلفل ألوان', 'Bell peppers', ''], fajita: ['تتبيلة فاهيتا', 'Fajita seasoning', ''],
-    jalapeno: ['هلابينو', 'Jalapeño', ''], fries: ['بطاطس مقلية', 'Fries', ''], egg: ['بيض طازج', 'Fresh egg', 'egg'], tuna: ['تونة', 'Tuna', 'fish'],
-    falafel: ['فلافل (حمص وأعشاب)', 'Falafel (chickpeas and herbs)', ''], tahini: ['صوص طحينة', 'Tahini sauce', 'sesame'],
-    slaw: ['ملفوف وجزر بصوص الكول سلو', 'Cabbage and carrot in coleslaw dressing', 'egg'], caesar: ['صوص سيزر', 'Caesar dressing', 'egg fish dairy'],
+    brioche: ['خبز بريوش (دقيق كويتي فاخر، دقيق أبيض، خميرة، زيت، ملح، بهارات)', 'Brioche bun (premium Kuwaiti flour, white flour, yeast, oil, salt, spices)', 'gluten'],
+    bun: ['خبز البرجر (دقيق، خميرة، زيت، ملح، بهارات)', 'Burger bun (flour, yeast, oil, salt, spices)', 'gluten'],
+    bread: ['خبز (دقيق، خميرة، زيت، ملح)', 'Bread (flour, yeast, oil, salt)', 'gluten'], tortilla: ['خبز تورتيلا', 'Tortilla wrap', 'gluten'],
+    beef: ['لحم بقري طازج (شريحتا سماش 50 جم)', 'Fresh beef (two 50 g smash patties)', ''], chicken: ['دجاج طازج', 'Fresh chicken', ''],
+    smashChicken: ['دجاج طازج (شريحتا سماش 50 جم)', 'Fresh chicken (two 50 g smash patties)', ''],
+    breaded: ['دجاج مقلي مقرمش (متبل بالخل والصويا صوص والبيض والبهارات، ومغطى بالطحين)', 'Crispy fried chicken (marinated in vinegar, soy sauce, egg and spices, coated in flour)', 'gluten egg soy'],
+    doner: ['شرائح لحم متبلة (100 جم)', 'Seasoned beef slices (100 g)', ''], cheese: ['جبن', 'Cheese', 'dairy'], melt: ['جبنة سائحة', 'Melted cheese', 'dairy'],
+    sauce: ['صوص نهم (مايونيز، كاتشب، خردل، كريمة طبخ، صويا صوص، بهارات)', 'Nahem sauce (mayonnaise, ketchup, mustard, cooking cream, soy sauce, spices)', 'egg mustard dairy soy'],
+    mayo: ['مايونيز', 'Mayonnaise', 'egg'], lettuce: ['خس', 'Lettuce', ''], veg: ['خضار طازجة', 'Fresh vegetables', ''], peppers: ['فلفل ألوان', 'Bell peppers', ''],
+    fajita: ['تتبيلة فاهيتا', 'Fajita seasoning', ''], fries: ['بطاطس مقلية (في مقلاة خاصة بالبطاطس)', 'Fries (cooked in their own fryer)', ''],
+    egg: ['بيض', 'Egg', 'egg'], tuna: ['تونة', 'Tuna', 'fish'], falafel: ['فلافل (حمص وأعشاب)', 'Falafel (chickpeas and herbs)', ''], tahini: ['صوص طحينة', 'Tahini sauce', 'sesame'],
+    slaw: ['ملفوف وجزر (بدون صوص)', 'Cabbage and carrot (no dressing)', ''],
+    caesar: ['صوص سيزر (مايونيز، صويا صوص، خردل، صلصة إيطالية، بهارات)', 'Caesar dressing (mayonnaise, soy sauce, mustard, Italian dressing, spices)', 'egg soy mustard'],
     parmesan: ['جبنة بارميزان', 'Parmesan', 'dairy'], cookie: ['عجينة كوكيز (طحين، زبدة، بيض، سكر)', 'Cookie dough (flour, butter, egg, sugar)', 'gluten dairy egg'],
-    chocolate: ['شوكولاتة', 'Chocolate', 'dairy soy'], heisa: ['حيسة مدينية (تفاصيل الوصفة عند مطبخ نهم)', 'Madinah heisa (full recipe from the Nahem kitchen)', 'gluten dairy'],
+    chocolate: ['شوكولاتة', 'Chocolate', 'dairy soy'], heisa: ['حيسة نهم (معجون تمر، فول سوداني، سمسم، ماء ورد)', 'Heisa Nahem (date paste, peanuts, sesame, rose water)', 'nuts sesame'],
     soda: ['مشروب غازي من اختيارك', 'A soft drink of your choice', ''], water: ['مياه معدنية', 'Mineral water', ''], tea: ['شاي', 'Tea', ''], milk: ['حليب', 'Milk', 'dairy'],
     sugar: ['سكر', 'Sugar', ''], cardamom: ['هيل', 'Cardamom', ''], coffee: ['قهوة عربية', 'Arabic coffee', ''],
-    garlic: ['صوص ثوم', 'Garlic sauce', 'egg'], hot: ['صوص حراق', 'Spicy sauce', ''], cocktail: ['صوص كوكتيل', 'Cocktail sauce', 'egg mustard']
+    dynsauce: ['صوص الديناميت', 'Dynamite sauce', 'egg soy mustard'], hot: ['صوص حراق', 'Spicy sauce', 'soy mustard'], cocktail: ['صوص كوكتيل', 'Cocktail sauce', 'egg mustard']
   };
   /* the standard recipe; items marked choice depend on what the customer picks inside them */
   var RECIPE = {
-    'دبل سماش لحم': 'brioche beef cheese sauce fries', 'دبل سماش دجاج': 'brioche chicken cheese sauce fries', 'برجر دجاج زنجر': 'brioche breaded lettuce cheese sauce fries',
-    'ديناميت دجاج': 'fries breaded sauce jalapeno', 'وجبة استربس': 'breaded bread fries garlic', 'وجبة نهم': 'brioche breaded cheese sauce fries soda',
-    'كومبو نهم': 'brioche breaded beef cheese sauce fries soda', 'ساندوتش بيج نهم': 'brioche breaded sauce cheese', 'ساندوتش دجاج فاهيتا': 'brioche chicken fajita peppers sauce',
+    'دبل سماش لحم': 'bun beef cheese sauce', 'دبل سماش دجاج': 'bun smashChicken cheese sauce', 'برجر دجاج زنجر': 'bun breaded lettuce cheese sauce',
+    'ديناميت دجاج': 'fries breaded dynsauce', 'وجبة استربس': 'breaded bread fries sauce', 'وجبة نهم': 'bun breaded cheese sauce fries soda',
+    'كومبو نهم': 'brioche bun breaded chicken fajita cheese sauce fries soda', 'ساندوتش بيج نهم': 'brioche breaded sauce cheese', 'ساندوتش دجاج فاهيتا': 'brioche chicken fajita peppers sauce',
     'راب تويستر': 'tortilla breaded lettuce sauce', 'راب دونر تركي': 'bread doner veg sauce', 'تشكن فرايز': 'fries breaded sauce',
     'ساندوتش بيض': 'brioche egg sauce', 'ساندوتش تونة': 'brioche tuna mayo veg', 'ساندوتش فاهيتا للفطور': 'brioche chicken fajita sauce',
     'ساندوتش فلافل': 'bread falafel veg tahini', 'ساندوتش جبنتين': 'brioche cheese melt', 'ساندوتش مليس': 'brioche egg melt',
-    'وجبة الإفطار': 'brioche egg cheese tea sugar', 'بوكس الخفايف': 'brioche breaded egg cheese tahini sauce', 'بوكس البرجر': 'brioche beef breaded cheese sauce fries slaw garlic',
+    'وجبة الإفطار': 'brioche egg cheese melt tea sugar', 'بوكس الخفايف': 'brioche breaded egg cheese tahini sauce fries', 'بوكس البرجر': 'bun beef breaded cheese sauce fries slaw',
     'بطاطس': 'fries', 'سلطة ملفوف': 'slaw', 'سلطة سيزر': 'lettuce chicken caesar parmesan', 'كوكيز نهم': 'cookie chocolate', 'حيسة نهم': 'heisa',
     'عرض الحلى': 'heisa cookie chocolate soda', 'مشروب غازي': 'soda', 'ماء': 'water', 'كرك': 'tea milk sugar cardamom', 'شاي': 'tea sugar',
-    'قهوة سعودية': 'coffee cardamom', 'الصوصات': 'garlic hot cocktail caesar'
+    'قهوة سعودية': 'coffee cardamom', 'الصوصات': 'sauce caesar dynsauce hot cocktail'
   };
   var CHOICE = ['وجبة نهم', 'كومبو نهم', 'وجبة الإفطار', 'بوكس الخفايف', 'بوكس البرجر', 'عرض الحلى', 'الصوصات'];
   /* Close-up media per item. Add the restaurant's preparation videos here (an .mp4 link, or a YouTube link),
@@ -129,7 +138,7 @@
   function nutri(i) {
     var n = i && NUTRITION[i.ar], c = kcalOf(i);
     if (!n || !c) return null;
-    return { kcal: c.n, kcalEst: c.est, p: n[0], c: n[1], f: n[2], fib: n[3], sug: n[4], na: n[5], salt: Math.round(n[5] * 2.5 / 100) / 10, est: NUTRITION_EST };
+    return { kcal: c.n, kcalEst: c.est, p: n[0], c: n[1], f: n[2], fib: n[3], sug: n[4], na: n[5], salt: Math.round(n[5] * 2.5 / 100) / 10, kitchen: KITCHEN.indexOf(i.ar) !== -1, est: KITCHEN.indexOf(i.ar) === -1 };
   }
   function allergensOf(i) {
     var r = i && RECIPE[i.ar], set = [];
@@ -180,13 +189,13 @@
     ],
     /* [category, price, Arabic name, English name, Arabic description, English description, tags] */
     items: [
-      ['burger', 19, 'دبل سماش لحم', 'Double Beef Smash', 'قطعتان لحم طازج مع الجبن والصوص الخاص وبطاطس', 'Two fresh beef patties, cheese, house sauce and fries', 'beef fries filling popular'],
+      ['burger', 19, 'دبل سماش لحم', 'Double Beef Smash', 'قطعتان لحم طازج مع الجبن والصوص الخاص وبطاطس', 'Two fresh beef patties, cheese, house sauce and fries', 'beef fries filling'],
       ['burger', 18, 'دبل سماش دجاج', 'Double Chicken Smash', 'قطعتان دجاج طازج مع الجبن والصوص الخاص وبطاطس', 'Two fresh chicken patties, cheese, house sauce and fries', 'chicken fries filling'],
       ['burger', 16, 'برجر دجاج زنجر', 'Zinger Chicken Burger', 'دجاج زنجر مقرمش مع الخس والجبن والصوص وبطاطس', 'Crunchy zinger chicken, lettuce, cheese, house sauce and fries', 'chicken fries crispy'],
-      ['special', 13, 'ديناميت دجاج', 'Dynamite Chicken', 'بطاطس مقرمشة وقطع دجاج كرانشي وصوصات وهلابينو', 'Crispy fries, crunchy chicken bites, sauces and jalapeño', 'chicken spicy fries crispy'],
+      ['special', 13, 'ديناميت دجاج', 'Dynamite Chicken', 'بطاطس مقرمشة وقطع دجاج كرانشي مع صوص الديناميت', 'Crispy fries and crunchy chicken bites with dynamite sauce', 'chicken fries crispy popular'],
       ['special', 18, 'وجبة استربس', 'Strips Meal', '٤ قطع استربس + خبز + بطاطس + صوص', '4 chicken strips + bread + fries + dip', 'chicken fries kids crispy'],
       ['special', 28, 'وجبة نهم', 'Nahem Meal', 'برجر من اختيارك + بطاطس + قطعة استربس + مشروب', 'Any burger + fries + 1 strip + soft drink', 'meal fries drink filling value'],
-      ['special', 34, 'كومبو نهم', 'Nahem Combo', 'ساندوتش اسبيشل + برجر + بطاطس + مشروب', 'Special sandwich + burger + fries + soft drink', 'meal fries drink filling'],
+      ['special', 34, 'كومبو نهم', 'Nahem Combo', 'ساندوتش اسبيشل + برجر + بطاطس + مشروب', 'Special sandwich + burger + fries + soft drink', 'meal fries drink filling popular'],
       ['special', 14, 'ساندوتش بيج نهم', 'Big Nahem Sandwich', 'دجاج استربس وصوصات خاصة وجبن أمريكي في بريوش', 'Chicken strips, house sauces and American cheese in brioche', 'chicken crispy'],
       ['special', 11, 'ساندوتش دجاج فاهيتا', 'Chicken Fajita Sandwich', 'دجاج فاهيتا وفلفل ألوان وإضافات خاصة في بريوش', 'Fajita chicken, bell peppers and special extras in brioche', 'chicken'],
       ['special', 14, 'راب تويستر', 'Twister Wrap', 'ساندوتش دجاج طازج وصوص خاص في خبز التورتيلا', 'Fresh chicken and special sauce in a tortilla wrap', 'chicken wrap'],
@@ -198,8 +207,8 @@
       ['breakfast', 5, 'ساندوتش فلافل', 'Falafel Sandwich', 'فلافل مقرمشة مع خضار وصوص طحينة', 'Crispy falafel, fresh vegetables and tahini sauce', 'veg light'],
       ['breakfast', 4, 'ساندوتش جبنتين', 'Two Cheese Sandwich', 'مزيج من جبنتين سايحة داخل خبز بريوش', 'Two melted cheeses in brioche bread', 'veg kids'],
       ['breakfast', 5, 'ساندوتش مليس', 'Malis Sandwich', 'بيض مع جبنة سائلة وتتبيلة خاصة', 'Egg, smooth cheese and a special seasoning', 'veg'],
-      ['breakfast', 11, 'وجبة الإفطار', 'Breakfast Meal', 'ساندوتشان من اختيارك + شاي', 'Two sandwiches of your choice + tea', 'drink value'],
-      ['boxes', 49, 'بوكس الخفايف', 'Snack Box', '٥ ساندوتشات من اختيارك + ٤ صوص — يكفي نحو 5 أشخاص', '5 sandwiches of your choice + 4 dips — feeds about 5', 'share popular value'],
+      ['breakfast', 11, 'وجبة الإفطار', 'Breakfast Meal', 'ساندوتشان من اختيارك + شاي', 'Two sandwiches of your choice + tea', 'drink value popular'],
+      ['boxes', 49, 'بوكس الخفايف', 'Snack Box', '٥ ساندوتشات من اختيارك + بطاطس + ٤ صوصات — يكفي نحو 5 أشخاص', '5 sandwiches of your choice + fries + 4 dips — feeds about 5', 'share popular value fries'],
       ['boxes', 79, 'بوكس البرجر', 'Burger Box', '٤ برجر من اختيارك + ملفوف + بطاطس + ٤ صوص + ٢ استربس — يكفي نحو 4 أشخاص', '4 burgers of your choice + coleslaw, fries, 4 dips and 2 strips — feeds about 4', 'share popular fries'],
       ['sides', 5, 'بطاطس', 'Fries', 'بطاطس مقلية ذهبية ومقرمشة', 'Golden crispy fries', 'veg kids side'],
       ['sides', 5, 'سلطة ملفوف', 'Coleslaw', 'سلطة ملفوف طازجة', 'Fresh coleslaw', 'veg light side'],
@@ -207,29 +216,34 @@
       ['sides', 9, 'كوكيز نهم', 'Nahem Cookies', 'كوكيز بالشوكولاتة الذائبة', 'Cookies with molten chocolate', 'sweet kids'],
       ['sides', 8, 'حيسة نهم', 'Heisa Nahem', 'حيسة مدينية بطابع نهم', 'Madinah-style heisa dessert', 'sweet'],
       ['sides', 12, 'عرض الحلى', 'Dessert Offer', 'حيسة أو كوكيز + مشروب من اختيارك', 'Heisa or cookies + a drink of your choice', 'sweet drink value'],
-      ['drinks', 3, 'مشروب غازي', 'Soft Drink', 'بيبسي، سفن، برتقال، ديو أو كينزا', 'Pepsi, 7UP, orange, Dew or Kinza', 'cold'],
+      ['drinks', 3, 'مشروب غازي', 'Soft Drink', 'بيبسي، بيبسي دايت، سفن، ديو، ميرندا برتقال أو ميرندا حمضيات', 'Pepsi, Diet Pepsi, 7UP, Dew, Mirinda orange or Mirinda citrus', 'cold'],
       ['drinks', 1, 'ماء', 'Water', 'مياه معدنية', 'Bottled water', 'cold'],
       ['drinks', 4, 'كرك', 'Karak', 'شاي كرك ساخن', 'Hot karak tea', 'hot'],
       ['drinks', 4, 'شاي', 'Tea', 'شاي ساخن', 'Hot tea', 'hot'],
       ['drinks', 5, 'قهوة سعودية', 'Saudi Coffee', 'قهوة سعودية ساخنة', 'Hot Saudi coffee', 'hot'],
-      ['sauces', 2, 'الصوصات', 'Sauces', 'ثوم، حراق، كوكتيل أو سيزر', 'Garlic, spicy, cocktail or Caesar', 'sauce']
+      ['sauces', 2, 'الصوصات', 'Sauces', 'صوص نهم، سيزر، ديناميت، حراق أو كوكتيل', 'Nahem, Caesar, dynamite, spicy or cocktail sauce', 'sauce']
     ].map(function (r) { return { cat: r[0], price: r[1], ar: r[2], en: r[3], dAr: r[4], dEn: r[5], tags: r[6], img: PHOTOS[r[2]] || '' }; })
   };
 
   /* Facts the website does not state yet. Fill one in ({ ar: '…', en: '…' }) and the bot answers it;
      while it is null the bot says it has no confirmed answer and hands over to WhatsApp, never guessing. */
   var FACTS = {
-    payment: null,     /* e.g. { ar: 'نقبل مدى وفيزا وأبل باي والكاش.', en: 'We accept mada, Visa, Apple Pay and cash.' } */
-    delivery: null,    /* delivery for individual customers */
-    dineIn: null,      /* seating inside the branches */
-    parking: null,
+    payment: { ar: 'نقبل الكاش والشبكة (مدى) والفيزا 💳', en: 'We accept cash, card (mada) and Visa 💳' },
+    delivery: { ar: 'نوصّل مجانًا داخل حي القصواء، والحد الأدنى للطلب 20 ريال 🛵\nولباقي الأحياء تلقانا في هنقرستيشن وكيتا ونينجا وذا شيفز وجاهز.', en: 'We deliver free within the Al Qaswa district, with a 20 SAR minimum order 🛵\nFor other areas, find us on HungerStation, Keeta, Ninja, The Chefs and Jahez.' },
+    dineIn: { ar: 'إيه، فيه جلسات في الفرعين 🪑 تقدر تاكل عندنا براحتك.', en: 'Yes, both branches have seating 🪑 so you can eat in.' },
+    parking: { ar: 'إيه، فيه مواقف سيارات عند الفرعين 🚗', en: 'Yes, both branches have parking 🚗' },
     calories: null,
-    nutrition: null,  /* fat, protein, carbs, sugar, salt: e.g. { ar: '…', en: '…' } once the restaurant has the figures */
+    nutrition: null,
     allergens: null,
-    halal: null,
-    prepTime: null,    /* e.g. { ar: 'طلبك يجهز عادة خلال 10–15 دقيقة.', en: 'Orders are usually ready in 10–15 minutes.' } */
-    breakfastHours: null,
-    vat: null
+    halal: { ar: 'كل أكلنا حلال 100% ✅ وكل موردينا محليين.', en: 'All our food is 100% halal ✅ and all our suppliers are local.' },
+    prepTime: { ar: 'طلبك يجهز خلال 10 دقائق تقريبًا ⏱️', en: 'Your order is usually ready in about 10 minutes ⏱️' },
+    breakfastHours: { ar: 'كل المنيو متوفر 24 ساعة، حتى الفطور 🍳 تقدر تطلب وجبة الإفطار في أي وقت.', en: 'The whole menu is available 24 hours, breakfast included 🍳 You can order the Breakfast Meal any time.' },
+    vat: { ar: 'إيه، كل أسعارنا شاملة ضريبة القيمة المضافة ✅', en: 'Yes, all our prices include VAT ✅' }
+  };
+  /* what the kitchen can change in an order (all free except an extra patty and extra cheese) */
+  var MODS = {
+    ar: 'تقدر تعدّل طلبك مجانًا 👌\n• بدون جبن، بدون سلطة، أو بدون صوص\n• بطاطس بدون بهارات\n• إضافة بصل مكرمل أو هالبينو أو صوص حراق\nوالإضافات المدفوعة: شريحة إضافية لأي برجر بـ 6 ريال، وجبن إضافي بريال. والصوصات الجانبية بريالين.',
+    en: 'You can customise your order for free 👌\n• No cheese, no salad or no sauce\n• Fries without seasoning\n• Add caramelised onion, jalapeño or spicy sauce\nPaid extras: an extra patty on any burger for 6 SAR, extra cheese for 1 SAR. Side sauces are 2 SAR.'
   };
 
   var CATS = {
@@ -338,8 +352,8 @@
   var GENERIC = ['ساندوتش', 'سندويش', 'برجر', 'راب', 'نهم', 'sandwich', 'burger', 'wrap', 'nahem', 'من', 'في', 'مع', 'the', 'of'];
   function stem(t) { return t.length > 4 ? t.replace(/^(ال|بال|وال|لل)/, '') : t; }
   var SYN = {
-    'مشروب غازي': ['بيبسي', 'سفن', 'سفن اب', 'ديو', 'كينزا', 'كولا', 'غازيات', 'pepsi', '7up', 'dew', 'cola', 'soda', 'soft drinks'],
-    'ماء': ['مويه', 'مياه', 'موية'], 'بطاطس': ['فرايز', 'بطاطا', 'french fries'], 'الصوصات': ['ثوم', 'كوكتيل', 'garlic', 'dips'],
+    'مشروب غازي': ['بيبسي', 'سفن', 'سفن اب', 'ديو', 'ميرندا', 'كولا', 'غازيات', 'pepsi', '7up', 'dew', 'mirinda', 'cola', 'soda', 'soft drinks'],
+    'ماء': ['مويه', 'مياه', 'موية'], 'بطاطس': ['فرايز', 'بطاطا', 'french fries'], 'الصوصات': ['كوكتيل', 'صوص ديناميت', 'صوص نهم', 'dips'],
     'قهوة سعودية': ['قهوه', 'قهوه عربيه', 'coffee', 'arabic coffee'], 'وجبة استربس': ['استربس', 'strips', 'tenders'],
     'بوكس الخفايف': ['خفايف'], 'حيسة نهم': ['حيسه'], 'كوكيز نهم': ['كوكيز', 'cookie'], 'ساندوتش جبنتين': ['جبنتين', 'cheese sandwich'],
     'كومبو نهم': ['combo', 'كومبو'], 'سلطة سيزر': ['سيزر', 'caesar'], 'سلطة ملفوف': ['ملفوف', 'coleslaw']
@@ -372,6 +386,10 @@
       list = scored.filter(function (x) { return x.s >= top - 0.01 || x.s >= 0.99; }).slice(0, 6).map(function (x) { return x.i; });
       list.exact = top >= 0.99;
       list.exactCount = scored.filter(function (x) { return x.s >= 0.99; }).length;
+      if (list.exactCount >= 2 && !/(^|\s)(ولا|او|or|vs|versus|فرق|الفرق|قارن|مقارنه|compare|difference)($|\s)/.test(q)) {
+        var whole = list.filter(function (i) { return [i.ar, i.en].concat(SYN[i.ar] || []).some(function (n) { var t = norm(n).replace(/^ال/, ''); return t.length > 3 && q.indexOf(t) !== -1; }); });
+        if (whole.length === 1) { list = whole.concat(list.filter(function (i) { return i !== whole[0]; }).slice(0, 0)); list.exact = true; list.exactCount = 1; list.weak = all.slice(0, 4).map(function (x) { return x.i; }); list.near = all.map(function (x) { return x.i; }).filter(function (i) { return i !== whole[0]; }); }
+      }
       list.second = scored[1] && scored[1].s >= 0.6 ? scored[1].i : null;
       list.near = all.slice(1).map(function (x) { return x.i; });
     }
@@ -482,7 +500,7 @@
     };
     var R = function (o) { o.lang = lang; CTX.topic = o.topic || null; return o; };
     var catName = function (k) { return CATS[k] ? CATS[k][lang === 'en' ? 'en' : 'ar'] : ''; };
-    var popular = d.popular || byNames(d, ['بوكس البرجر', 'بوكس الخفايف', 'دبل سماش لحم']);
+    var popular = d.popular || byNames(d, ['كومبو نهم', 'بوكس البرجر', 'ديناميت دجاج']);
     var branchB = findBranch(d, q);
     var found = findItems(d, q);
     var words = q.split(' ').length;
@@ -572,8 +590,14 @@
     var subject = one.length ? one : ctxItem;
     var sheetAct = function (i) { return { label: X('📋 التفاصيل والقيم الغذائية', '📋 Details & nutrition'), sheet: i }; };
     var addAct = function (i) { return { label: X('أضف للطلب', 'Add to order'), add: [[1, i]] }; };
-    var estNote = NUTRITION_EST ? X('\n(القيم تقديرية للعرض التجريبي إلى أن يعتمدها مطبخ نهم.)', '\n(Estimated values for this demo until the Nahem kitchen confirms them.)') : '';
-    var allergyNote = X('\n⚠️ حسب الوصفة القياسية، والمطبخ يتعامل مع كل هذه المكونات. إذا عندك حساسية شديدة أكّد مع الموظف قبل الطلب.', '\n⚠️ Based on the standard recipe; the kitchen handles all of these ingredients. With a severe allergy, please confirm with our staff before ordering.');
+    /* say where the numbers come from: the kitchen's table, or an estimate */
+    var noteFor = function (list) {
+      var est = list.some(function (i) { var n = nutri(i); return n && n.est; }), kit = list.some(function (i) { var n = nutri(i); return n && n.kitchen; });
+      return kit && !est ? X('\n(من جدول القيم الغذائية لمطبخ نهم، والسكر والملح تقديرية.)', "\n(From the Nahem kitchen's nutrition table; sugar and salt are estimates.)")
+        : kit ? X('\n(أرقام الساندوتشات من جدول مطبخ نهم، والوجبات والباقي تقديرية.)', '\n(Sandwich figures are from the Nahem kitchen; meals and the rest are estimates.)')
+        : X('\n(القيم تقديرية إلى أن يعتمدها مطبخ نهم.)', '\n(Estimated values until the Nahem kitchen confirms them.)');
+    };
+    var allergyNote = X('\n⚠️ حسب الوصفة القياسية. إذا عندك حساسية، بلّغ الكاشير عند الطلب ويجهزون طلبك بالطريقة المناسبة لك.', '\n⚠️ Based on the standard recipe. If you have an allergy, tell the cashier when you order and the kitchen will prepare your order to suit you.');
     var NUTW = {
       p: ['بروتين', 'البروتين', 'protein', 'proteins'],
       c: ['كربوهيدرات', 'الكربوهيدرات', 'كارب', 'كاربز', 'نشويات', 'carbs', 'carb', 'carbohydrate', 'carbohydrates'],
@@ -649,8 +673,8 @@
         head = X('💪 لأهداف الجيم، هذي أعلى أصنافنا بروتين:', '💪 For your gym goals, these are our highest-protein items:');
         keys = ['p', 'kcal'];
         tips = (bigMeal ? X('\n🍽️ وللجوع الكبير: ' + N(bigMeal) + ' فيها ' + nutri(bigMeal).p + ' جم بروتين (' + nutri(bigMeal).kcal + ' سعرة)', '\n🍽️ For a big appetite: the ' + N(bigMeal) + ' has ' + nutri(bigMeal).p + ' g protein (' + nutri(bigMeal).kcal + ' kcal)') : '')
-          + X('\n💡 أفضل بروتين مقابل السعرات: ' + N(dense) + ' (' + nutri(dense).p + ' جم في ' + nutri(dense).kcal + ' سعرة)\n💡 زِد بروتينك بعرض السعودية سماش: سماش دجاج إضافي بـ 3 ريال مع أي برجر\n💡 خذ ماء بدل المشروب الغازي ووفّر 140 سعرة',
-          '\n💡 Most protein per calorie: ' + N(dense) + ' (' + nutri(dense).p + ' g in ' + nutri(dense).kcal + ' kcal)\n💡 Boost it with the Saudi Smash offer: an extra chicken smash for 3 SAR with any burger\n💡 Swap the soft drink for water and save 140 kcal');
+          + X('\n💡 أفضل بروتين مقابل السعرات: ' + N(dense) + ' (' + nutri(dense).p + ' جم في ' + nutri(dense).kcal + ' سعرة)\n💡 زِد بروتينك بشريحة إضافية لأي برجر بـ 6 ريال\n💡 خذ ماء بدل المشروب الغازي ووفّر 140 سعرة',
+          '\n💡 Most protein per calorie: ' + N(dense) + ' (' + nutri(dense).p + ' g in ' + nutri(dense).kcal + ' kcal)\n💡 Boost it with an extra patty on any burger for 6 SAR\n💡 Swap the soft drink for water and save 140 kcal');
       } else if (g === 'diet') {
         picks = pool.filter(function (i) { return nutri(i).kcal <= 400 && nutri(i).p >= 10; }).sort(function (a, b) { return nutri(b).p / nutri(b).kcal - nutri(a).p / nutri(a).kcal; }).slice(0, 4);
         head = X('🥗 للدايت: أقل سعرات مع بروتين يشبعك:', '🥗 For your diet: fewer calories, with protein to keep you full:');
@@ -676,18 +700,41 @@
       } else {
         /* healthy: more protein and fibre, less sugar, salt and fat per calorie */
         var score = function (i) { var n = nutri(i); return (n.p * 4 + n.fib * 12 - n.sug * 4 - n.f * 3 - n.na / 60) / n.kcal; };
-        picks = pool.filter(function (i) { return nutri(i).kcal <= 500; }).sort(function (a, b) { return score(b) - score(a); }).slice(0, 4);
+        picks = pool.filter(function (i) { return nutri(i).kcal <= 500 && nutri(i).kcal >= 150; }).sort(function (a, b) { return score(b) - score(a); }).slice(0, 4);
         head = X('💚 أكثر أصنافنا توازنًا (بروتين وألياف أعلى، وسكر ودهون أقل):', '💚 Our most balanced picks (more protein and fibre, less sugar and fat):');
         keys = ['kcal', 'p', 'fib'];
         tips = X('\n💡 أضف سلطة ملفوف بدل البطاطس، وخذ ماء مع وجبتك.', '\n💡 Add a coleslaw instead of fries, and have water with your meal.');
       }
+      var caesar = byNames(d, ['سلطة سيزر'])[0];
+      if (caesar && (g === 'protein' || g === 'diet') && narrow([caesar]).length && !(findCat(q) && findCat(q) !== 'sides')) {
+        picks = [caesar].concat(picks.filter(function (i) { return i !== caesar; })).slice(0, 4);
+        head += X('\n⭐ ترشيح نهم: سلطة سيزر (' + nutri(caesar).kcal + ' سعرة، ' + nutri(caesar).p + ' جم بروتين)', "\n⭐ Nahem's pick: the Caesar Salad (" + nutri(caesar).kcal + ' kcal, ' + nutri(caesar).p + ' g protein)');
+      }
       CTX.last = picks.slice(0, 3);
       if (fromRec) head = X('🎯 حسب هدفك اللي ذكرته (قل «الألذ وبس» لاقتراحات عامة):\n', '🎯 Based on the goal you mentioned (say "just the tastiest" for general picks):\n') + head;
-      return R({ text: head + '\n' + picks.map(function (i) { return line(i, keys); }).join('\n') + tips + estNote, cards: picks,
+      return R({ text: head + '\n' + picks.filter(function (i) { return !(caesar && i === caesar && (g === 'protein' || g === 'diet')); }).map(function (i) { return line(i, keys); }).join('\n') + tips + noteFor(picks), cards: picks,
         actions: picks[0] ? [addAct(picks[0])] : null, buttons: [B.order],
         chips: X(['💪 بروتين عالي', '🥗 دايت', '💚 أكل صحي', '🚫 عندي حساسية', '📊 القيم الغذائية'], ['💪 High protein', '🥗 Diet', '💚 Healthy', '🚫 I have an allergy', '📊 Nutrition facts']).filter(function (c) { return c.indexOf(g === 'protein' ? 'بروتين' : g === 'diet' ? 'دايت' : 'صحي') === -1 && c.toLowerCase().indexOf(g === 'protein' ? 'protein' : g === 'diet' ? 'diet' : 'healthy') === -1; }) });
     };
 
+    /* the most asked question on WhatsApp: "is the chicken spicy?" (no; heat comes only from sauce, free to add) */
+    if (has(q, ['حار', 'حاره', 'حراق', 'سبايسي', 'spicy', 'hot'], true) && !has(q, ['مشروب', 'drink', 'شاي', 'كرك', 'قهوه', 'tea', 'coffee'], true)
+      && (has(q, ['الدجاج', 'دجاج', 'دجاجكم', 'chicken', 'الاكل', 'اكلكم', 'food'], true) || one.length) && (has(q, ['هل', 'is', 'are', 'فيه', '=ال'], true) || /[?؟]/.test(String(raw)) || words <= 3)) {
+      CTX.last = one.length ? one.slice(0, 1) : CTX.last;
+      return R({ text: X('لا، ' + (one.length ? N(one[0]) : 'الدجاج عندنا') + ' مو حار 🙂 الحرارة عندنا من الصوص الحراق والهالبينو بس، وتقدر تضيفهم مجانًا لأي ساندوتش (الحرارة متوسطة إلى خفيفة) 🌶️',
+          'No, ' + (one.length ? 'the ' + N(one[0]) + ' is' : 'our chicken is') + ' not spicy 🙂 The heat only comes from spicy sauce and jalapeño, which you can add to any sandwich for free (medium to mild) 🌶️'),
+        cards: one.length ? one.slice(0, 1) : null, buttons: [B.order], chips: X(['التعديلات المجانية', 'الأكثر طلبًا'], ['Free add-ons', 'Best sellers']) });
+    }
+    if (has(q, ['التعديلات المجانيه', 'free add ons', 'free addons'], true)) return R({ text: X(MODS.ar, MODS.en), buttons: [B.order] });
+    /* a first visit: the owner's pick is the Nahem Combo */
+    if (has(q, ['اول مره', 'اول مرة', 'اول زياره', 'اول تجربه', 'اجرب نهم', 'ما قد جربت', 'ماقد جربت', 'first time', 'never tried', 'first visit', 'new here'], true)) {
+      var combo = byNames(d, ['كومبو نهم'])[0];
+      if (combo) {
+        CTX.last = [combo];
+        return R({ text: X('أول مرة؟ حيّاك 🧡 أنصحك بـ كومبو نهم: ساندوتش اسبيشل + برجر من اختيارك + بطاطس + مشروب بـ ' + combo.price + ' ريال، تذوق فيه أكثر من صنف مرة وحدة 😋', 'First time? Welcome 🧡 Go for the Nahem Combo: a special sandwich + a burger of your choice + fries + a drink for ' + combo.price + ' SAR, so you get to taste more than one thing 😋'),
+          cards: [combo].concat(byNames(d, ['ديناميت دجاج'])), actions: [addAct(combo), sheetAct(combo)], buttons: [B.order] });
+      }
+    }
     /* "حسب هدفي", "what suits me": ask about the customer's need first */
     if (has(q, ['حسب هدفي', 'هدفي', 'نظامي الغذائي', 'وش يناسبني', 'ايش يناسبني', 'وش اللي يناسبني', 'حسب احتياجي', 'my goal', 'my goals', 'my diet', 'based on my', 'what suits me', 'find my meal', 'right for me'], true) && !one.length && !goalId)
       return R({ text: X('أكيد! أقترح لك حسب احتياجك 🎯 وش أقرب شي لك؟', "Sure! I'll match it to what you need 🎯 Which is closest to you?"),
@@ -708,7 +755,7 @@
         return R({ text: X('سلامتك أهم 🙏 من أي شي عندك حساسية؟ أوريك الأصناف اللي ما تحتوي عليه حسب الوصفة.', 'Your safety comes first 🙏 What are you allergic to? I will show you the items without it in the standard recipe.'),
           chips: X(['حساسية جلوتين', 'حساسية لاكتوز', 'حساسية بيض', 'حساسية سمسم', 'حساسية سمك', 'حساسية مكسرات'], ['Gluten allergy', 'Lactose intolerance', 'Egg allergy', 'Sesame allergy', 'Fish allergy', 'Nut allergy']) });
       var A = ALLERGENS[allergen], aName = X(A[0], A[1]);
-      var friedNote = allergen === 'gluten' ? X('\nالبطاطس تنقلى غالبًا في نفس زيت الدجاج المقرمش، فممكن تتعرض لآثار جلوتين.', '\nFries are usually cooked in the same oil as the breaded chicken, so they may carry traces of gluten.') : '';
+      var friedNote = allergen === 'gluten' ? X('\nالبطاطس تنقلى في مقلاة خاصة فيها، منفصلة عن الدجاج المقلي. وخيارنا الخالي من الخبز: سلطة سيزر 🥗', '\nFries are cooked in their own fryer, separate from the fried chicken. Our bread-free choice is the Caesar Salad 🥗') : '';
       if (alSubject.length) {
         var it0 = alSubject[0], al = allergensOf(it0) || [], yes = al.indexOf(allergen) !== -1;
         CTX.last = [it0];
@@ -721,7 +768,7 @@
       }
       var safe = narrow(d.items.filter(function (i) { return solo(i) && i.cat !== 'drinks' && (allergensOf(i) || ['x']).indexOf(allergen) === -1 && CHOICE.indexOf(i.ar) === -1; }));
       var fried = friedNote;
-      var nutsNote = allergen === 'nuts' ? X('\nما في أي وصفة عندنا مكسرات، لكن ما نقدر نضمن عدم وجود آثار (مثل الشوكولاتة).', '\nNone of our recipes list nuts, but we cannot rule out traces (for example in chocolate).') : '';
+      var nutsNote = allergen === 'nuts' ? X('\n⚠️ حيسة نهم فيها فول سوداني وسمسم، فتجنّبها وتجنّب عرض الحلى.', '\n⚠️ The Heisa Nahem contains peanuts and sesame, so avoid it and the Dessert Offer.') : '';
       CTX.last = safe.slice(0, 3);
       return R({ text: (safe.length ? X('الأصناف اللي ما فيها ' + A[0] + ' حسب الوصفة القياسية ' + A[2] + ':\n', 'Items with no ' + A[1].toLowerCase() + ' in the standard recipe ' + A[2] + ':\n') + safe.slice(0, 8).map(function (i) { return '• ' + N(i); }).join('\n')
             : X('للأسف كل أصنافنا الرئيسية فيها ' + A[0] + ' 🙏', 'Sorry, all of our main items contain ' + A[1].toLowerCase() + ' 🙏')) + fried + nutsNote + allergyNote,
@@ -743,7 +790,7 @@
         var ranked = narrow(d.items.filter(nutrient === 'sug' ? solo : mains)).sort(function (a, b) { return up ? nutri(b)[nutrient] - nutri(a)[nutrient] : nutri(a)[nutrient] - nutri(b)[nutrient]; }).slice(0, 5);
         CTX.last = ranked.slice(0, 3);
         return R({ text: (up ? X('الأعلى في ' + NUTNAME[nutrient] + ':\n', 'Highest in ' + NUTNAME[nutrient] + ':\n') : X('الأقل في ' + NUTNAME[nutrient] + ':\n', 'Lowest in ' + NUTNAME[nutrient] + ':\n'))
-            + ranked.map(function (i) { return line(i, [nutrient, 'kcal']); }).join('\n') + estNote,
+            + ranked.map(function (i) { return line(i, [nutrient, 'kcal']); }).join('\n') + noteFor(ranked),
           cards: ranked.slice(0, 4), buttons: [B.order], chips: X(['📊 القيم الغذائية للزنجر', '💪 بروتين عالي', '🥗 دايت'], ['📊 Zinger nutrition', '💪 High protein', '🥗 Diet']) });
       }
       if (subject.length) {
@@ -751,7 +798,7 @@
         var withN = subject.filter(function (i) { return nutri(i); }).slice(0, 2);
         if (!withN.length) return R({ text: X('ما عندي قيم غذائية لهذا الصنف حاليًا 🙏', "I don't have nutrition values for that item yet 🙏"), buttons: [B.wa] });
         var focus = nutrient ? withN.map(function (i) { var n = nutri(i); return N(i) + ': ' + (nutrient === 'na' ? X('ملح ', 'salt ') + n.salt + X(' جم', ' g') : n[nutrient] + X(' جم ', ' g ') + NUTNAME[nutrient]); }).join('\n') + '\n\n' : '';
-        return R({ text: focus + withN.map(function (i) { return '📊 ' + X('القيم الغذائية لـ ', 'Nutrition: ') + N(i) + (CHOICE.indexOf(i.ar) !== -1 ? X(' (تختلف حسب اختيارك)', ' (depends on your choice)') : '') + '\n' + macroLines(i); }).join('\n\n') + estNote,
+        return R({ text: focus + withN.map(function (i) { return '📊 ' + X('القيم الغذائية لـ ', 'Nutrition: ') + N(i) + (CHOICE.indexOf(i.ar) !== -1 ? X(' (تختلف حسب اختيارك)', ' (depends on your choice)') : '') + '\n' + macroLines(i); }).join('\n\n') + noteFor(withN),
           cards: withN, actions: [sheetAct(withN[0])], buttons: [B.order], chips: pairChips(withN[0], X) });
       }
       return R({ text: X('أقدر أعطيك القيم الغذائية الكاملة لأي صنف 📊: السعرات وتوزيعها، البروتين، الكربوهيدرات، الدهون، الألياف، السكر والملح، ومدى الشبع.\nاسألني مثلًا: «القيم الغذائية للزنجر»، أو اختار هدفك:', 'I can give you the full nutrition of any item 📊: calories and their breakdown, protein, carbs, fat, fibre, sugar, salt and how filling it is.\nAsk e.g. "nutrition of the zinger", or pick your goal:'),
@@ -767,13 +814,13 @@
       var fries = byNames(d, ['بطاطس'])[0];
       return R({ text: '🍽️ ' + N(fi) + ': ' + FULL[lang === 'en' ? 'en' : 'ar'][fv] + ' (' + fv + X(' من 5)', ' / 5)') + '\n'
           + X('فيه ' + fnn.kcal + ' سعرة و' + fnn.p + ' جم بروتين و' + fnn.fib + ' جم ألياف، والبروتين والألياف هم اللي يطوّلون الشبع.', 'It has ' + fnn.kcal + ' kcal, ' + fnn.p + ' g protein and ' + fnn.fib + ' g fibre; protein and fibre are what keep you full longer.')
-          + (fv <= 2 ? X('\nإذا جوعك كبير، زِد ' + (fries ? 'بطاطس (' + fries.price + ' ريال) ' : '') + 'أو خذ شي أشبع:', '\nVery hungry? Add ' + (fries ? 'fries (' + fries.price + ' SAR) ' : '') + 'or go for something more filling:') : fv >= 4 ? X('\nيكفيك كوجبة كاملة 👌', '\nA full meal on its own 👌') : X('\nيكفي لجوع متوسط، ومع البطاطس أو المشروب يصير وجبة كاملة.', '\nRight for a normal appetite; with fries or a drink it is a full meal.')) + estNote,
+          + (fv <= 2 ? X('\nإذا جوعك كبير، زِد ' + (fries ? 'بطاطس (' + fries.price + ' ريال) ' : '') + 'أو خذ شي أشبع:', '\nVery hungry? Add ' + (fries ? 'fries (' + fries.price + ' SAR) ' : '') + 'or go for something more filling:') : fv >= 4 ? X('\nيكفيك كوجبة كاملة 👌', '\nA full meal on its own 👌') : X('\nيكفي لجوع متوسط، ومع البطاطس أو المشروب يصير وجبة كاملة.', '\nRight for a normal appetite; with fries or a drink it is a full meal.')) + noteFor([fi]),
         cards: [fi].concat(more), actions: [addAct(fi), sheetAct(fi)], buttons: [B.order] });
     }
     if (fillW && !one.length && has(q, ['اكثر', 'اشبع', 'most', 'which', 'وش', 'ايش'], true)) {
       var byFull = narrow(d.items.filter(function (i) { return fullness(i) >= 4; })).sort(function (a, b) { return fullness(b) - fullness(a) || a.price - b.price; }).slice(0, 4);
       CTX.last = byFull.slice(0, 3);
-      return R({ text: X('أكثر شي يشبع 🍽️\n', 'The most filling picks 🍽️\n') + byFull.map(function (i) { return '• ' + N(i) + ' — ' + FULL[lang === 'en' ? 'en' : 'ar'][fullness(i)] + ' · ' + i.price + ' ' + SAR; }).join('\n') + estNote, cards: byFull, buttons: [B.order] });
+      return R({ text: X('أكثر شي يشبع 🍽️\n', 'The most filling picks 🍽️\n') + byFull.map(function (i) { return '• ' + N(i) + ' — ' + FULL[lang === 'en' ? 'en' : 'ar'][fullness(i)] + ' · ' + i.price + ' ' + SAR; }).join('\n') + noteFor(byFull), cards: byFull, buttons: [B.order] });
     }
 
     /* "is the zinger healthy?" / "good for a diet?" about one item: an honest answer and lighter swaps */
@@ -784,14 +831,28 @@
         var heavy = hn.kcal > 550 || hn.f > 28 || hn.sug > 30, lightAlt = narrow(d.items.filter(mains).filter(function (i) { return nutri(i).kcal < hn.kcal - 100 && nutri(i).p >= 12; })).sort(function (a, b) { return nutri(b).p / nutri(b).kcal - nutri(a).p / nutri(a).kcal; }).slice(0, 2);
         var verdict = goalId === 'protein'
           ? (hn.p >= 25 ? X('💪 خيار ممتاز للجيم: ' + hn.p + ' جم بروتين.', '💪 A great gym pick: ' + hn.p + ' g protein.') : X('💪 فيه ' + hn.p + ' جم بروتين، متوسط. لبروتين أعلى جرّب:', '💪 It has ' + hn.p + ' g protein, which is moderate. For more, try:'))
-          : heavy ? X('بصراحة ' + N(hi) + ' وجبة دسمة (' + hn.kcal + ' سعرة، ' + hn.f + ' جم دهون) 🙂 تنفع مرة على خفيف، ولو تبي أخف جرّب:', 'Honestly, the ' + N(hi) + ' is on the rich side (' + hn.kcal + ' kcal, ' + hn.f + ' g fat) 🙂 Fine as a treat; for something lighter, try:')
+          : heavy ? X(N(hi) + ' وجبة مشبعة وغنية 😋 (' + hn.kcal + ' سعرة و' + hn.p + ' جم بروتين)، مثالية لما يكون جوعك كبير. ولو تبي شي أخف لدايتك جرّب:', 'The ' + N(hi) + ' is a rich, filling meal 😋 (' + hn.kcal + ' kcal, ' + hn.p + ' g protein), perfect when you are really hungry. For something lighter for your diet, try:')
           : X('👍 ' + N(hi) + ' خيار معتدل: ' + hn.kcal + ' سعرة و' + hn.p + ' جم بروتين.', '👍 The ' + N(hi) + ' is a moderate choice: ' + hn.kcal + ' kcal and ' + hn.p + ' g protein.');
         var showAlt = goalId === 'protein' ? (hn.p < 25 ? narrow(d.items.filter(mains)).sort(function (a, b) { return nutri(b).p - nutri(a).p; }).slice(0, 2) : []) : heavy ? lightAlt : [];
-        return R({ text: verdict + estNote, cards: [hi].concat(showAlt), actions: [sheetAct(hi)], buttons: [B.order] });
+        return R({ text: verdict + noteFor([hi]), cards: [hi].concat(showAlt), actions: [sheetAct(hi)], buttons: [B.order] });
       }
     }
     if (goalId) return goalPlan(goalId);
 
+    /* parts of the food the kitchen described: the bread, the sauces, the chicken marinade, the fryers */
+    if (has(q, ['تنقلي', 'تقلي', 'ينقلي', 'يقلي', 'مقلاه', 'مقلات', 'زيت', 'fried', 'fryer', 'fry', 'oil'], true) && has(q, ['بطاطس', 'البطاطس', 'فرايز', 'fries', 'chips'], true))
+      return R({ text: X('البطاطس تنقلى في مقلاة خاصة فيها، منفصلة عن الدجاج المقلي 👌 وتقدر تطلبها بدون بهارات.', 'Our fries are cooked in their own fryer, separate from the fried chicken 👌 You can also have them without seasoning.'), cards: byNames(d, ['بطاطس']), buttons: [B.order] });
+    var PART = [[['الخبز', 'خبز', 'خبزكم', 'البريوش', 'بريوش', 'bread', 'bun', 'buns', 'brioche'], 'brioche', X(' (يتخبز عندنا يوميًا)', ' (baked fresh every day)')],
+      [['صوص نهم', 'الصوص الخاص', 'صوصكم', 'nahem sauce', 'house sauce', 'special sauce'], 'sauce', ''], [['صوص سيزر', 'caesar sauce', 'caesar dressing'], 'caesar', ''],
+      [['تتبيله الدجاج', 'تتبيلة الدجاج', 'الدجاج المقلي', 'الدجاج المقرمش', 'marinade', 'fried chicken', 'crispy chicken'], 'breaded', '']];
+    if (ingW || has(q, ['وش فيه', 'ايش فيه', 'وش يدخل', 'مصنوع', 'made of', 'what is in', 'whats in'], true)) {
+      var part = PART.filter(function (x) { return has(q, x[0], true); })[0];
+      if (part && !(one.length && !has(q, part[0].slice(0, 4), true))) {
+        var pi0 = ING[part[1]], pal = (pi0[2] || '').split(' ').filter(Boolean);
+        return R({ text: '🧾 ' + X(pi0[0], pi0[1]) + part[2] + (pal.length ? X('\nمسببات الحساسية: ', '\nAllergens: ') + pal.map(function (a) { return ALLERGENS[a][2] + ' ' + X(ALLERGENS[a][0], ALLERGENS[a][1]); }).join(X('، ', ', ')) : '')
+          + (part[1] === 'brioche' ? X('\nما فيه حليب ولا بيض ولا سمسم.', '\nNo milk, egg or sesame.') : '') + allergyNote, buttons: [B.order] });
+      }
+    }
     /* ingredients of one item */
     if (ingW && subject.length) {
       var gi = subject[0], ing = ingredientsOf(gi, lang), gal = allergensOf(gi) || [];
@@ -860,7 +921,7 @@
 
     /* ---------------- events ---------------- */
     if (has(q, ['مناسبه', 'مناسبات', 'حفله', 'حفلات', 'جمعه', 'جمعات', 'عزيمه', 'عزومه', 'استراحه', 'اجتماع', 'كميات', 'طلب كبير', 'لمجموعه', 'مجموعه', 'event', 'events', 'party', 'catering', 'gathering', 'bulk', 'large order', 'group', 'for a group']) && !has(q, HOURWORDS))
-      return R({ text: X('للمناسبات والجمعات عندنا بوكسات مصممة للمشاركة 🎉\n• بوكس البرجر 79 ريال: يكفي نحو 4 أشخاص\n• بوكس الخفايف 49 ريال: يكفي نحو 5 أشخاص\nقل لي كم عددكم (مثلًا "احنا 12") وأحسب لك الكمية والسعر، أو استخدم حاسبة المناسبات وأرسل الطلب جاهز على واتساب. نؤكد لك السعر النهائي وموعد الاستلام، وكل ما كان الطلب أبكر كان التجهيز أريح.', 'For events and gatherings we have sharing boxes 🎉\n• Burger Box 79 SAR: feeds about 4\n• Snack Box 49 SAR: feeds about 5\nTell me how many you are (e.g. "we are 12") and I will work out the quantities and price, or use the events calculator and send the order on WhatsApp. We confirm the final price and pickup time; earlier is better for big orders.'),
+      return R({ text: X('للمناسبات والجمعات عندنا بوكسات مصممة للمشاركة 🎉\n• بوكس البرجر 79 ريال: يكفي نحو 4 أشخاص\n• بوكس الخفايف 49 ريال: يكفي نحو 5 أشخاص\nقل لي كم عددكم (مثلًا "احنا 12") وأحسب لك الكمية والسعر، أو استخدم حاسبة المناسبات وأرسل الطلب جاهز على واتساب. نؤكد لك السعر النهائي وموعد الاستلام، وكل ما كان الطلب أبكر كان التجهيز أريح.\nوعندنا تجهيز مناسبات وضيافة (بوفيه) غير البوكسات، وما فيه حد أدنى للكمية 👌', 'For events and gatherings we have sharing boxes 🎉\n• Burger Box 79 SAR: feeds about 4\n• Snack Box 49 SAR: feeds about 5\nTell me how many you are (e.g. "we are 12") and I will work out the quantities and price, or use the events calculator and send the order on WhatsApp. We confirm the final price and pickup time; earlier is better for big orders.\nWe also do event catering (buffet and hospitality) beyond the boxes, with no minimum quantity 👌'),
         cards: byNames(d, ['بوكس البرجر', 'بوكس الخفايف']), buttons: [B.events, B.wa], chips: X(['احنا 10', 'احنا 25', 'احنا 50'], ['We are 10', 'We are 25', 'We are 50']), topic: 'group' });
     if (has(q, ['احجز', 'حجز', 'مسبق', 'مسبقا', 'قبل بيوم', 'بكره', 'باكر', 'in advance', 'reserve', 'reservation', 'pre order', 'preorder', 'schedule', 'tomorrow']))
       return R({ text: X('أكيد تقدر تطلب مسبقًا 👍\n• للطلبات العادية: اطلب من منصة نهم، أو أرسل طلبك على واتساب مع الوقت اللي يناسبك\n• للمناسبات والكميات: أرسل لنا التاريخ والوقت والعدد على واتساب، ونأكد معك. وكل ما كان أبكر كان أريح 👌', 'Yes, you can order ahead 👍\n• Regular orders: order on the Nahem platform, or send your order on WhatsApp with the time that suits you\n• Events and large orders: send us the date, time and headcount on WhatsApp and we will confirm. The earlier, the better 👌'), buttons: [B.wa, B.events] });
@@ -868,7 +929,7 @@
     /* ---------------- offers, app, club, prices ---------------- */
     if (has(q, ['كيف استخدم الكود', 'وين احط الكود', 'وين اكتب الكود', 'كيف احط الكود', 'how do i use the code', 'where do i enter', 'use the code']))
       return R({ text: X('حمّل تطبيق نهم، أضف أصنافك للسلة، وقبل الدفع اكتب الكود ' + s.appCode + ' في خانة كود الخصم، ويطلع لك خصم 10% 🎉', 'Download the Nahem app, add your items, and before paying enter ' + s.appCode + ' in the discount code field for 10% off 🎉'), buttons: [Object.assign({}, B.ios, { primary: true }), B.android] });
-    var offersText = X('• خصم 10% على طلبك من تطبيق نهم بكود: ' + s.appCode + '\n• عرض السعودية سماش: أضف سماش دجاج بـ 3 ريال مع أي برجر\n• عرض الحلى: حيسة أو كوكيز + مشروب بـ 12 ريال\n• الشركات: خصم ' + s.companiesDiscount + '% للموظفين وتوصيل مجاني', '• 10% off in the Nahem app with code: ' + s.appCode + '\n• Saudi Smash: add a chicken smash for 3 SAR with any burger\n• Dessert offer: heisa or cookies + a drink for 12 SAR\n• Companies: ' + s.companiesDiscount + '% staff discount and free delivery');
+    var offersText = X('• خصم 10% على طلبك من تطبيق نهم بكود: ' + s.appCode + '\n• عرض الحلى: حيسة أو كوكيز + مشروب بـ 12 ريال\n• الشركات: خصم ' + s.companiesDiscount + '% للموظفين وتوصيل مجاني', '• 10% off in the Nahem app with code: ' + s.appCode + '\n• Dessert offer: heisa or cookies + a drink for 12 SAR\n• Companies: ' + s.companiesDiscount + '% staff discount and free delivery');
     var discountWords = ['عرض', 'عروض', 'خصم', 'خصومات', 'تخفيض', 'كوبون', 'كود', 'برومو', 'offer', 'offers', 'discount', 'promo', 'coupon', 'code', 'deal', 'deals', 'sale'];
     if (has(q, ['طالب', 'طلاب', 'جامعه', 'جامعي', 'student', 'students', 'university']) && has(q, discountWords))
       return R({ text: X('ما عندنا حاليًا عرض خاص للطلاب معلن 🙏 لكن تقدر تستفيد من:\n', "We don't have a student discount right now 🙏 but you can use:\n") + offersText, buttons: [B.ios, B.android] });
@@ -877,7 +938,7 @@
       return R({ text: X('عروض نهم الحالية 🔥\n', 'Current Nahem offers 🔥\n') + offersText + (dp ? X('\n• متاح الآن: ', '\n• Available now: ') + dp : '') + X('\nالعروض تتجدد، وأحدثها يظهر أعلى الموقع.', '\nOffers change; the latest is shown at the top of the site.'),
         buttons: [B.order, B.ios, B.android], chips: X(['كيف أستخدم الكود؟', 'عرض الشركات', 'الأكثر طلبًا'], ['How do I use the code?', 'Company offer', 'Best sellers']) });
     }
-    var deliveryApps = has(q, ['هنقرستيشن', 'هنقر', 'مرسول', 'كيتا', 'تويو', 'نينجا', 'hungerstation', 'jahez', 'keeta', 'toyou', 'ninja', 'mrsool', 'talabat', 'careem', 'كريم']) || /(في|على|من|تطبيق) جاهز/.test(q);
+    var deliveryApps = has(q, ['هنقرستيشن', 'هنقر', 'مرسول', 'كيتا', 'تويو', 'نينجا', 'ذا شيفز', 'شيفز', 'hungerstation', 'jahez', 'keeta', 'toyou', 'ninja', 'the chefs', 'thechefs', 'mrsool', 'talabat', 'careem', 'كريم']) || /(في|على|من|تطبيق) جاهز/.test(q);
     if (has(q, ['ليش السعر', 'السعر غير', 'السعر مختلف', 'الاسعار مختلفه', 'سعر مختلف', 'اختلاف السعر', 'different price', 'price different', 'prices differ', 'prices are different', 'price is different']))
       return R({ text: X('الأسعار اللي في موقعنا هي أسعار الفرع ومنصة نهم 👌 تطبيقات التوصيل الخارجية تحدد أسعارها بنفسها، عشان كذا ممكن تختلف.\nأوفر طريقة تطلب فيها: تطبيق نهم بخصم 10% (كود ' + s.appCode + ')، أو منصة نهم والاستلام من الفرع.', 'The prices on our site are branch prices and the Nahem platform 👌 Outside delivery apps set their own prices, so they can differ.\nThe best-value way to order: the Nahem app with 10% off (code ' + s.appCode + '), or the Nahem platform with branch pickup.'), buttons: [B.order, B.ios, B.android] });
     if (has(q, ['تطبيق', 'app', 'application', 'download', 'ايفون', 'اندرويد', 'iphone', 'android', 'play store', 'app store']) && !deliveryApps)
@@ -894,7 +955,7 @@
     if (!FACTS.calories && (has(q, ['سعرات', 'كالوري', 'كالوريز', 'calorie', 'calories', 'kcal', '=cal', 'low calorie', 'low cal', 'اخف الاصناف', 'lightest items']) || /\d+\s*(سعره|kcal|cal)($|\s)/.test(q))) {
       var calLine = function (i) { var c = kcalOf(i); return c ? '• ' + N(i) + ': ' + (c.est ? X('نحو ', 'about ') : '') + c.n + X(' سعرة', ' kcal') : null; };
       var anyEst = function (list) { return list.some(function (i) { var c = kcalOf(i); return c && c.est; }); };
-      var estNote = X('\n(الأرقام اللي قبلها «نحو» تقديرية، والباقي من منيو نهم.)', '\n(Figures marked "about" are estimates; the others are from the Nahem menu.)');
+      var estNote = X('\n(الأرقام اللي قبلها «نحو» تقديرية، والباقي من مطبخ نهم.)', '\n(Figures marked "about" are estimates; the others are from the Nahem kitchen.)');
       var limit = (q.match(/(اقل من|تحت|under|less than|below|max)\s*(\d{2,4})/) || [])[2];
       if (limit) {
         var under = d.items.filter(function (i) { var c = kcalOf(i); return c && c.n > 0 && c.n <= Number(limit) && ['drinks', 'sauces'].indexOf(i.cat) === -1; }).sort(function (a, b) { return kcalOf(a).n - kcalOf(b).n; });
@@ -919,6 +980,7 @@
       ['calories', ['سعرات', 'كالوري', 'كالوريز', 'calorie', 'calories', 'kcal'], ['السعرات الحرارية', 'calories'], X('\nوإذا تبي شي أخف، جرّب السلطات أو ساندوتش التونة أو الفلافل.', '\nFor something lighter, try the salads or the tuna or falafel sandwich.')],
       ['allergens', ['حساسيه', 'جلوتين', 'قلوتين', 'مكسرات', 'لاكتوز', 'فول سوداني', 'allergy', 'allergic', 'allergen', 'allergens', 'gluten', 'nuts', 'peanut', 'lactose'], ['مسببات الحساسية', 'allergens'], ''],
       ['halal', ['حلال', 'مذبوح', 'halal'], ['مصدر اللحوم والدجاج', 'meat and chicken sourcing'], ''],
+      ['breakfastHours', ['وقت الفطور', 'الفطور متوفر', 'الفطور متي', 'متي الفطور', 'الفطور لين', 'الفطور الي', 'الفطور الحين', 'فطور الحين', 'breakfast hours', 'breakfast time', 'serve breakfast', 'breakfast available', 'breakfast until', 'breakfast now'], ['وقت الفطور', 'breakfast hours'], ''],
       ['vat', ['ضريبه', 'القيمه المضافه', '=vat', '=tax'], ['الضريبة في الأسعار', 'VAT in the prices'], '']
     ];
     for (var f = 0; f < factTopics.length; f++) {
@@ -930,12 +992,14 @@
         return R({ text: X('ما عندي معلومة مؤكدة عن ' + ft[2][0] + ' حاليًا، وما أبغى أعطيك معلومة غلط 🙏' + extra + ft[3] + '\nفريقنا يجاوبك بدقة على واتساب ' + waNum + '.', "I don't have confirmed information about " + ft[2][1] + " yet, and I don't want to guess 🙏" + extra + ft[3] + '\nOur team will answer exactly on WhatsApp ' + waNum + '.'), buttons: [B.wa] });
       }
     }
-    if (has(q, ['بدون', 'زياده', 'اضافي', 'اكسترا', 'extra', 'without', 'no cheese', 'no onion', 'no sauce', 'no pickles', 'customize', 'customise']) && !has(q, ['بدون لحم', 'بدون دجاج', 'no meat', 'without meat']))
-      return R({ text: X('أكيد تقدر تعدّل طلبك 👌 (مثل بدون جبن، أو صوص زيادة)\nاكتب ملاحظتك مع الطلب، أو أرسلها لنا مع طلبك على واتساب ' + waNum + '. والصوصات الإضافية بـ 2 ريال (ثوم، حراق، كوكتيل أو سيزر).', 'Sure, you can customise your order 👌 (e.g. no cheese, or extra sauce)\nAdd a note with your order, or send it with your order on WhatsApp ' + waNum + '. Extra sauces are 2 SAR (garlic, spicy, cocktail or Caesar).'), buttons: [B.wa, B.order] });
+    if (has(q, ['بدون', 'زياده', 'اضافي', 'اضافيه', 'اضافات', 'الاضافات', 'اكسترا', 'شريحه', 'بصل', 'هالبينو', 'هلابينو', 'تعديل', 'تعديلات', 'extra', 'without', 'no cheese', 'no onion', 'no sauce', 'no pickles', 'customize', 'customise', 'modify', 'add ons', 'addons', 'extra patty', 'jalapeno', 'caramelized onion', 'caramelised onion']) && !has(q, ['بدون لحم', 'بدون دجاج', 'no meat', 'without meat']))
+      return R({ text: X(MODS.ar + '\nاكتب التعديل في ملاحظة الطلب، أو قوله للكاشير.', MODS.en + '\nAdd it to the order note, or tell the cashier.'), buttons: [B.order] });
 
     /* ---------------- delivery ---------------- */
-    if (deliveryApps)
-      return R({ text: X('أسعار تطبيقات التوصيل الخارجية تختلف عن أسعار الفرع 👀 وللتأكد إذا نهم متوفر في تطبيق معيّن، راسلنا على واتساب ' + waNum + '.\nوالأوفر لك: تطبيق نهم بخصم 10% (كود ' + s.appCode + ')، أو منصة نهم والاستلام من الفرع.', 'Prices on outside delivery apps differ from branch prices 👀 To check whether Nahem is on a specific app, message us on WhatsApp ' + waNum + '.\nBest value: the Nahem app with 10% off (code ' + s.appCode + '), or the Nahem platform with branch pickup.'), buttons: [B.ios, B.order, B.wa] });
+    if (deliveryApps) {
+      var notOn = has(q, ['مرسول', 'تويو', 'mrsool', 'toyou', 'talabat', 'careem', 'كريم'], true) ? X('مو موجودين في هذا التطبيق حاليًا 🙏 ', "We're not on that app right now 🙏 ") : '';
+      return R({ text: notOn + X('تلقى نهم في هنقرستيشن وكيتا ونينجا وذا شيفز وجاهز 🛵\nأسعار التطبيقات ممكن تختلف عن أسعار الفرع، والأوفر لك: تطبيق نهم بخصم 10% (كود ' + s.appCode + ')، أو التوصيل المجاني داخل حي القصواء (الحد الأدنى 20 ريال).', 'You can find Nahem on HungerStation, Keeta, Ninja, The Chefs and Jahez 🛵\nApp prices can differ from branch prices. Best value: the Nahem app with 10% off (code ' + s.appCode + '), or free delivery within Al Qaswa (20 SAR minimum).'), buttons: [B.ios, B.order] });
+    }
     if (has(q, ['توصيل', 'توصلون', 'يوصل', 'دليفري', 'ديليفري', 'delivery', 'deliver', 'delivering']))
       return R({ text: FACTS.delivery ? X(FACTS.delivery.ar, FACTS.delivery.en) : X('الطلب من منصة نهم يكون مع الاستلام من الفرع اللي تختاره 🚗 تطلب قبل ما توصل وتستلمه جاهز.\nلمعرفة توفر التوصيل لموقعك ورسومه، راسلنا على واتساب ' + waNum + '.\nوللشركات المشتركة: توصيل مجاني للطلبات من ' + s.companiesFreeFrom + ' ريال فأكثر.', 'Orders on the Nahem platform are picked up from the branch you choose 🚗 Order before you arrive and collect it ready.\nTo check delivery to your area and its fee, message us on WhatsApp ' + waNum + '.\nRegistered companies get free delivery on orders of ' + s.companiesFreeFrom + ' SAR or more.'),
         buttons: [B.order, B.wa] });
@@ -1027,7 +1091,7 @@
     var meats = filters.filter(function (fl) { return fl.id === 'chicken' || fl.id === 'beef'; });
     if (items.length && (items.exact || followUp) && !(filters.length && !items.exact)) {
       CTX.last = items.slice(0, 3);
-      var ask = has(q, ['مكونات', 'وش فيه', 'ايش فيه', 'وش هو', 'وش هي', 'وش يعني', 'ايش هو', 'ايش يعني', 'وصف', 'what is', 'whats in', 'what s in', 'ingredients', 'what does', 'describe']);
+      var ask = has(q, ['مكونات', 'وش فيه', 'ايش فيه', 'وش في', 'ايش في', 'وش هو', 'وش هي', 'وش يعني', 'ايش هو', 'ايش يعني', 'وصف', 'what is', 'whats in', 'what s in', 'ingredients', 'what does', 'describe']);
       if (/(يناسبه|goes with)/.test(q) && items[0]) return R({ text: itemDetail(items[0], d, X, N, true), cards: byNames(d, ['بطاطس', 'مشروب غازي', 'الصوصات']), buttons: [B.order] });
       if (items.length === 1 || items.exactCount === 1)
         return R({ text: itemDetail(items[0], d, X, N, ask || has(q, ['سعر', '=كم', 'بكم', 'how much', 'price', 'cost']), ask), cards: [items[0]], actions: [sheetAct(items[0])], buttons: [B.order, B.menu], chips: pairChips(items[0], X) });
@@ -1077,7 +1141,7 @@
     if (has(q, ['تقييم', 'تقييمات', 'تقييمكم', 'ريفيو', 'جوجل', 'قوقل', 'rating', 'ratings', 'review', 'reviews', 'google', 'stars']))
       return R({ text: X('تقييم نهم على Google: ' + s.rating + ' من 5 ⭐\nمن تعليقات عملائنا: «من أفضل مطاعم البرجر في المدينة من ناحية السعر والطعم والجودة».\nويسعدنا تقييمك بعد ما تجربنا 🧡', 'Nahem is rated ' + s.rating + ' / 5 ⭐ on Google.\nOne customer wrote: "one of the best burger places in Madinah for price, taste and quality".\nWe would love your review after your visit 🧡'), buttons: [B.reviews] });
     if (has(q, ['ليش نهم', 'وش يميز', 'يميزكم', 'مميز', 'فريش', 'طازج', 'طازه', 'جوده', 'قصتكم', 'من انتم', 'why nahem', 'fresh', 'quality', 'about you', 'your story', 'special about']))
-      return R({ text: X('نهم براند مديني بطعم واضح وسعر يستاهل 🧡\n• خبز بريوش يومي من الفرن\n• صوصات تتحضّر يوميًا\n• لحوم ودجاج طازج\n• مفتوحين 24 ساعة: فطور، غداء، عشاء… أو جوع مفاجئ', 'Nahem is a Madinah brand with bold taste at a fair price 🧡\n• Brioche bread baked daily\n• Sauces made fresh every day\n• Fresh meat and chicken\n• Open 24 hours: breakfast, lunch, dinner… or a sudden craving'), buttons: [B.menu, B.order] });
+      return R({ text: X('نهم معاكم 24 ساعة، والأكل فريش وطازج 🧡\n• الخبز يتخبز عندنا يوميًا\n• الصوصات تتحضّر يوميًا\n• الدجاج واللحم طازج ويتجهز يوميًا\n• كل الأكل حلال ومن موردين محليين', 'Nahem is with you 24 hours, and the food is fresh 🧡\n• Our bread is baked every day\n• Sauces are made fresh daily\n• Chicken and beef are fresh and prepared daily\n• Everything is halal, from local suppliers'), buttons: [B.menu, B.order] });
 
     /* ---------------- fallback: offer the closest menu items when there are any ---------------- */
     if (found.weak && found.weak.length)
@@ -1103,7 +1167,7 @@
     var hotDrink = has(q, ['ساخن', 'ساخنه', 'دافي', 'hot drink', 'hot drinks', 'warm']) || (has(q, ['مشروب', 'مشروبات', 'drink']) && has(q, ['حار', 'حاره']));
     if (hotDrink) out.push({ id: 'hot', title: X('☕ مشروبات ساخنة', '☕ Hot drinks'), test: t('hot') });
     else if (has(q, ['حار', 'حاره', 'حراق', 'سبايسي', 'هلابينو', 'spicy', 'jalapeno', 'hot sauce', 'chili']))
-      out.push({ id: 'spicy', title: X('🌶️ للي يحب الحار', '🌶️ For spice lovers'), test: function (i) { return /هلابينو|حراق|jalape|spicy/i.test(i.dAr + i.dEn); }, note: X('وتقدر تضيف صوص حراق (2 ريال) لأي طلب.', 'You can add spicy sauce (2 SAR) to any order.') });
+      out.push({ id: 'spicy', title: X('🌶️ للي يحب الحار', '🌶️ For spice lovers'), test: function (i) { return / popular /.test(' ' + (i.tags || '') + ' ') && ['burger', 'special'].indexOf(i.cat) !== -1 || /حراق|spicy/i.test(i.dAr + i.dEn); }, note: X('أكلنا مو حار في الأساس، والحرارة عندنا من الصوص الحراق والهالبينو (متوسطة إلى خفيفة). تقدر تضيفهم مجانًا لأي ساندوتش 🌶️', 'Our food is not spicy by itself; the heat comes from spicy sauce and jalapeño (medium to mild). You can add them to any sandwich for free 🌶️') });
     if (has(q, ['مشروب بارد', 'مشروبات بارده', 'شي بارد', 'cold drink', 'cold drinks', 'something cold'])) out.push({ id: 'cold', title: X('🧊 مشروبات باردة', '🧊 Cold drinks'), test: t('cold') });
     if (has(q, ['دجاج', 'فراخ', 'تشكن', 'chicken'])) out.push({ id: 'chicken', title: X('🍗 خيارات الدجاج', '🍗 Chicken options'), test: t('chicken') });
     if (has(q, ['لحم', 'لحوم', 'بيف', 'beef', 'meat'])) out.push({ id: 'beef', title: X('🥩 خيارات اللحم', '🥩 Beef options'), test: t('beef') });
@@ -1112,7 +1176,7 @@
     if (has(q, ['خفيف', 'خفيفه', 'دايت', 'صحي', 'رجيم', 'سناك', 'سريع', 'على السريع', 'light', 'healthy', 'diet', 'snack', 'quick']))
       out.push({ id: 'light', title: X('🥗 خيارات أخف', '🥗 Lighter options'), test: t('light') });
     if (has(q, ['اطفال', 'طفل', 'عيال', 'بزران', 'صغار', 'ولدي', 'بنتي', 'kids', 'kid', 'child', 'children']))
-      out.push({ id: 'kids', title: X('👧 يحبها الأطفال', '👧 Kids love these'), test: t('kids') });
+      out.push({ id: 'kids', title: X('👧 يحبها الأطفال', '👧 Kids love these'), test: t('kids'), note: X('ترشيحنا للأطفال: وجبة استربس 🍗', 'Our pick for kids: the Strips Meal 🍗') });
     if (has(q, ['حلى', 'حلا', 'حلو', 'حلويات', 'تحليه', 'dessert', 'desserts', 'sweet', 'sweets']))
       out.push({ id: 'sweet', title: X('🍪 الحلى', '🍪 Desserts'), test: t('sweet') });
     if (has(q, ['مقرمش', 'كرانشي', 'crispy', 'crunchy'])) out.push({ id: 'crispy', title: X('😋 مقرمش', '😋 Crispy'), test: t('crispy') });
@@ -1146,7 +1210,7 @@
   function hours(d, b, q, X, B, R) {
     if (d.settings.open24h !== false) {
       var special = has(q, ['رمضان', 'العيد', 'ramadan', 'eid']);
-      return R({ text: X((b ? 'فرع ' + b.ar : 'نهم') + ' مفتوح 24 ساعة، كل أيام الأسبوع ✅ يعني مفتوحين الحين!\nفطور، غداء، عشاء… وحتى الجوع المتأخر آخر الليل 🌙' + (special ? '\nفي رمضان والأعياد إذا تغيّرت الأوقات نعلن عنها في حساباتنا @nahem_24.' : ''), (b ? 'Our ' + b.en + ' branch is' : 'Nahem is') + ' open 24 hours, every day ✅ so we are open right now!\nBreakfast, lunch, dinner… and late-night cravings 🌙' + (special ? '\nIf hours change during Ramadan or Eid, we announce it on @nahem_24.' : '')),
+      return R({ text: X((b ? 'فرع ' + b.ar : 'نهم') + ' مفتوح 24 ساعة، كل أيام الأسبوع ✅ يعني مفتوحين الحين!\nفطور، غداء، عشاء… وحتى الجوع المتأخر آخر الليل 🌙' + (special ? '\nوفي رمضان والأعياد نفس الأوقات، مفتوحين 24 ساعة.' : ''), (b ? 'Our ' + b.en + ' branch is' : 'Nahem is') + ' open 24 hours, every day ✅ so we are open right now!\nBreakfast, lunch, dinner… and late-night cravings 🌙' + (special ? '\nRamadan and Eid hours are the same: open 24 hours.' : '')),
         buttons: [B.order], chips: X(['وين فروعكم؟', 'وش تنصحني الحين؟'], ['Where are you?', 'What do you recommend now?']) });
     }
     var list = b ? [b] : d.branches;
@@ -1179,13 +1243,13 @@
   function recommend(d, X, B, R, popular, intro, force) {
     var h = force === 'night' ? 1 : riyadhHour(), names, period;
     if (h >= 4 && h < 11) { period = X('وقت الفطور ☀️', "It's breakfast time ☀️"); names = ['وجبة الإفطار', 'ساندوتش مليس', 'ساندوتش فاهيتا للفطور', 'كرك']; }
-    else if (h >= 11 && h < 16) { period = X('وقت الغداء 🍽️', "It's lunchtime 🍽️"); names = ['وجبة نهم', 'دبل سماش لحم', 'برجر دجاج زنجر']; }
-    else if (h >= 16 && h < 23) { period = X('وقت العشاء 🌆', "It's dinner time 🌆"); names = ['كومبو نهم', 'دبل سماش لحم', 'ديناميت دجاج']; }
-    else { period = X('سهران وجيعان؟ 🌙', 'Up late and hungry? 🌙'); names = ['ديناميت دجاج', 'تشكن فرايز', 'ساندوتش بيج نهم']; }
+    else if (h >= 11 && h < 16) { period = X('وقت الغداء 🍽️', "It's lunchtime 🍽️"); names = ['كومبو نهم', 'ديناميت دجاج', 'برجر دجاج زنجر']; }
+    else if (h >= 16 && h < 23) { period = X('وقت العشاء 🌆', "It's dinner time 🌆"); names = ['كومبو نهم', 'ديناميت دجاج', 'دبل سماش لحم']; }
+    else { period = X('سهران وجيعان؟ 🌙', 'Up late and hungry? 🌙'); names = ['ديناميت دجاج', 'كومبو نهم', 'تشكن فرايز']; }
     var picks = byNames(d, names);
     if (!picks.length) picks = popular;
     CTX.last = picks.slice(0, 3);
-    return R({ text: (intro || period + X(' هذي اقتراحاتي لك:', ' here are my picks:')) + X('\nوإذا معك ناس، بوكس البرجر (79) يكفي 4 وهو الأكثر طلبًا 🏆', '\nWith friends? The Burger Box (79) feeds 4 and is our best seller 🏆'),
+    return R({ text: (intro || period + X(' هذي اقتراحاتي لك:', ' here are my picks:')) + X('\nوإذا معك ناس، بوكس البرجر (79) يكفي 4، وبوكس الخفايف (49) يكفي 5 👥', '\nWith friends? The Burger Box (79) feeds 4 and the Snack Box (49) feeds 5 👥'),
       cards: picks, buttons: [B.order], chips: X(['شي دجاج', 'شي لحم', 'شي حار', 'أرخص شي', 'لمجموعة'], ['Chicken', 'Beef', 'Spicy', 'Cheapest', 'For a group']) });
   }
   function surprise(d, X, N, B, R) {
@@ -1442,6 +1506,7 @@
     '.sh-buy button.ok{background:var(--ok)}',
     '.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}',
     '.tags span{font-size:12.5px;font-weight:700;border-radius:999px;padding:4px 10px;background:var(--os);color:var(--o2)}',
+    '.est.kit{color:var(--ok);border-color:var(--ok)}',
     '.est{font-size:11px;font-weight:700;color:var(--mut);border:1px solid var(--line);border-radius:999px;padding:1px 8px}',
     '.kc{display:flex;align-items:baseline;gap:8px;margin-bottom:10px}',
     '.kc b{font-size:30px;line-height:1;font-variant-numeric:tabular-nums}',
@@ -1561,8 +1626,8 @@
       helpful: 'مفيد؟', thanks: 'شكرًا على رأيك 🧡', sorry: 'آسفين! بنحسّن الإجابة. تقدر تسأل فريقنا على واتساب.', askItem: '💬 اسأل المساعد عن هذا الصنف', askItemQ: function (n) { return 'وش في ' + n; },
       details: 'التفاصيل ›', back: 'رجوع', zoom: 'اضغط للتكبير', addTo: function (p) { return '+ أضف للطلب'; }, est: 'تقديرية',
       nutT: '📊 القيم الغذائية', kcalOf: function (p) { return 'سعرة · ' + p + '% من احتياجك اليومي'; }, prot: 'بروتين', carb: 'كربوهيدرات', fat: 'دهون', g: 'جم', fib: 'ألياف', sug: 'سكر', salt: 'ملح',
-      dvNote: 'النسبة من الاحتياج اليومي لشخص بالغ (2000 سعرة).', choiceNote: 'القيم لاختيار قياسي، وتختلف حسب الأصناف اللي تختارها.', fullT: '🍽️ الشبع', ingT: '🧾 المكونات', alT: '⚠️ مسببات الحساسية', alNone: 'ما فيه مسببات حساسية شائعة في الوصفة القياسية.',
-      alNote: 'حسب الوصفة القياسية، والمطبخ يتعامل مع الجلوتين والحليب والبيض والسمسم والسمك والصويا. إذا عندك حساسية شديدة أكّد مع الموظف قبل الطلب.', estNote: 'القيم الغذائية والمكونات تقديرية في هذا العرض التجريبي إلى أن يعتمدها مطبخ نهم.',
+      dvNote: 'النسبة من الاحتياج اليومي لشخص بالغ (2000 سعرة).', kitchen: 'من مطبخ نهم', sugEst: '* السكر والملح تقديرية.', choiceNote: 'القيم لاختيار قياسي، وتختلف حسب الأصناف اللي تختارها.', fullT: '🍽️ الشبع', ingT: '🧾 المكونات', alT: '⚠️ مسببات الحساسية', alNone: 'ما فيه مسببات حساسية شائعة في الوصفة القياسية.',
+      alNote: 'حسب الوصفة القياسية، والمطبخ يتعامل مع الجلوتين والحليب والبيض والسمسم والسمك والصويا. إذا عندك حساسية شديدة أكّد مع الموظف قبل الطلب.', estNote: 'القيم الغذائية لهذا الصنف تقديرية (الوجبات محسوبة من قيم مطبخ نهم حسب اختيارك).',
       vidT: '🎬 طريقة التحضير', vidSoon: 'هنا يظهر فيديو تحضير هذا الصنف من مطبخ نهم', tagPop: '🏆 الأكثر طلبًا', tagProt: '💪 بروتين عالي', tagLight: '🥗 أقل من 400 سعرة', tagFib: '🌾 غني بالألياف', tagSpicy: '🌶️ حار', tagKids: '👧 يحبه الأطفال', tagVeg: '🥬 بدون لحم',
       kTiles: [['🎯', 'ساعدني أختار حسب هدفي'], ['🔥', 'الأكثر طلبًا'], ['🍔', 'وش تنصحني؟'], ['👥', 'احنا 4 أشخاص']], kChips: ['💪 بروتين عالي', '🥗 دايت', '🚫 عندي حساسية', 'منيو الفطور', 'اختار لي'],
       kHello: 'أهلًا وسهلًا في نهم 👋', kSub: 'أنا مساعد نهم. قل لي وش تحب أو وش هدفك، وأساعدك تختار وجبتك', kTalk: '🎙️ تكلّم معي', kStart: '👆 اضغط للبدء', kGreet: 'أهلًا وسهلًا في نهم! وش تشتهي اليوم؟ أقدر أقترح لك حسب ذوقك أو هدفك.',
@@ -1582,8 +1647,8 @@
       helpful: 'Helpful?', thanks: 'Thanks for the feedback 🧡', sorry: "Sorry about that! We'll improve this answer. You can also ask our team on WhatsApp.", askItem: '💬 Ask the assistant about this item', askItemQ: function (n) { return "What's in " + n; },
       details: 'Details ›', back: 'Back', zoom: 'Tap to zoom', addTo: function (p) { return '+ Add to order'; }, est: 'estimated',
       nutT: '📊 Nutrition', kcalOf: function (p) { return 'kcal · ' + p + '% of your daily needs'; }, prot: 'Protein', carb: 'Carbs', fat: 'Fat', g: 'g', fib: 'Fibre', sug: 'Sugar', salt: 'Salt',
-      dvNote: '% of the daily needs of an adult (2000 kcal).', choiceNote: 'Values are for a standard choice and change with what you pick.', fullT: '🍽️ Fullness', ingT: '🧾 Ingredients', alT: '⚠️ Allergens', alNone: 'No common allergens in the standard recipe.',
-      alNote: 'Based on the standard recipe; the kitchen handles gluten, milk, egg, sesame, fish and soy. With a severe allergy, please confirm with our staff before ordering.', estNote: 'Nutrition and ingredients are estimates in this demo until the Nahem kitchen confirms them.',
+      dvNote: '% of the daily needs of an adult (2000 kcal).', kitchen: 'from the Nahem kitchen', sugEst: '* Sugar and salt are estimates.', choiceNote: 'Values are for a standard choice and change with what you pick.', fullT: '🍽️ Fullness', ingT: '🧾 Ingredients', alT: '⚠️ Allergens', alNone: 'No common allergens in the standard recipe.',
+      alNote: 'Based on the standard recipe; the kitchen handles gluten, milk, egg, sesame, fish and soy. With a severe allergy, please confirm with our staff before ordering.', estNote: 'Nutrition for this item is estimated (meals are added up from the Nahem kitchen figures for your choice).',
       vidT: '🎬 How it is made', vidSoon: "The Nahem kitchen's preparation video for this item goes here", tagPop: '🏆 Best seller', tagProt: '💪 High protein', tagLight: '🥗 Under 400 kcal', tagFib: '🌾 High fibre', tagSpicy: '🌶️ Spicy', tagKids: '👧 Kids love it', tagVeg: '🥬 Meat-free',
       kTiles: [['🎯', 'Help me choose for my goal'], ['🔥', 'Best sellers'], ['🍔', 'What do you recommend?'], ['👥', 'We are 4 people']], kChips: ['💪 High protein', '🥗 Diet', '🚫 I have an allergy', 'Breakfast menu', 'Surprise me'],
       kHello: 'Welcome to Nahem 👋', kSub: "I'm the Nahem assistant. Tell me what you like or what your goal is, and I'll help you choose", kTalk: '🎙️ Talk to me', kStart: '👆 Tap to start', kGreet: 'Welcome to Nahem! What are you in the mood for? I can suggest something for your taste or your goal.',
@@ -1777,10 +1842,13 @@
       var hasFries = inCart.some(function (i) { return / fries /.test(' ' + (i.tags || '') + ' ') || i.ar === 'بطاطس'; });
       var onlyBreakfast = inCart.every(function (i) { return i.cat === 'breakfast' || i.cat === 'drinks'; });
       var ups = [];
-      if (hasMain && !hasDrink) ups.push(onlyBreakfast ? 'كرك' : 'مشروب غازي');
+      var hasSweet = inCart.some(function (i) { return / sweet /.test(' ' + (i.tags || '') + ' '); });
       if (hasMain && !hasFries && !onlyBreakfast) ups.push('بطاطس');
-      if (hasMain && !inCart.some(function (i) { return i.cat === 'sauces'; }) && ups.length < 2 && !onlyBreakfast) ups.push('الصوصات');
-      ups = ups.map(function (n) { return d.items.filter(function (i) { return i.ar === n; })[0]; }).filter(Boolean).slice(0, 2);
+      if (hasMain && !hasDrink) ups.push(onlyBreakfast ? 'كرك' : 'مشروب غازي');
+      if (hasMain && !hasSweet && !onlyBreakfast) ups.push('حيسة نهم');
+      if (hasMain && !inCart.some(function (i) { return i.cat === 'sauces'; }) && !onlyBreakfast) ups.push('الصوصات');
+      if (hasMain && !inCart.some(function (i) { return i.ar === 'سلطة ملفوف' || i.ar === 'سلطة سيزر'; }) && !onlyBreakfast) ups.push('سلطة ملفوف');
+      ups = ups.map(function (n) { return d.items.filter(function (i) { return i.ar === n; })[0]; }).filter(Boolean).slice(0, 3);
       if (ups.length) {
         var up = el('div', 'ups'); up.appendChild(el('span', '', t.ups));
         ups.forEach(function (i) {
@@ -1907,7 +1975,7 @@
       }
       /* nutrition: calories and their breakdown, then fibre, sugar and salt against daily needs */
       if (n) {
-        var ns = sec(t.nutT, n.est ? el('span', 'est', t.est) : null);
+        var ns = sec(t.nutT, el('span', n.est ? 'est' : 'est kit', n.est ? t.est : t.kitchen));
         var kc = el('div', 'kc'); kc.append(el('b', '', String(n.kcal)), el('span', '', t.kcalOf(Math.round(n.kcal * 100 / DV.kcal))));
         ns.appendChild(kc);
         var e = n.p * 4 + n.c * 4 + n.f * 9;
@@ -1921,14 +1989,14 @@
           });
           ns.append(stack, leg);
         }
-        [[t.fib, n.fib, t.g, n.fib / DV.fib], [t.sug, n.sug, t.g, n.sug / DV.sug], [t.salt, n.salt, t.g, n.na / DV.na]].forEach(function (r0) {
+        [[t.fib, n.fib, t.g, n.fib / DV.fib], [t.sug + (n.est ? '' : ' *'), n.sug, t.g, n.sug / DV.sug], [t.salt + (n.est ? '' : ' *'), n.salt, t.g, n.na / DV.na]].forEach(function (r0) {
           var row = el('div', 'nr'), dv = el('div', 'dv'), bar = el('i');
           bar.style.width = Math.min(100, Math.round(r0[3] * 100)) + '%'; dv.appendChild(bar);
           dv.title = Math.round(r0[3] * 100) + '%';
           row.append(el('div', '', r0[0]), el('span', '', r0[1] + ' ' + r0[2] + ' · ' + Math.round(r0[3] * 100) + '%'), dv);
           ns.appendChild(row);
         });
-        ns.appendChild(el('div', 'dvn', t.dvNote + (choice ? ' ' + t.choiceNote : '')));
+        ns.appendChild(el('div', 'dvn', t.dvNote + (n.est ? '' : ' ' + t.sugEst) + (choice ? ' ' + t.choiceNote : '')));
         body.appendChild(ns);
       }
       if (fl) {
@@ -1952,7 +2020,7 @@
         as.append(chips0, el('div', 'warn', t.alNote));
         body.appendChild(as);
       }
-      if (NUTRITION_EST && (n || ing)) body.appendChild(el('div', 'sh-sec')).appendChild(el('div', 'warn', t.estNote));
+      if (n && n.est) body.appendChild(el('div', 'sh-sec')).appendChild(el('div', 'warn', t.estNote));
       sheet.append(top, body);
       sheet.hidden = false; body.scrollTop = 0;
       if (panel.hidden) open();
@@ -1997,7 +2065,9 @@
         var u = new SpeechSynthesisUtterance(speakable(text)), want = lang === 'en' ? 'en' : 'ar';
         u.lang = lang === 'en' ? 'en-US' : 'ar-SA'; u.rate = 1;
         var v = window.speechSynthesis.getVoices().filter(function (x) { return x.lang && x.lang.toLowerCase().indexOf(want) === 0; });
-        if (v.length) u.voice = v.filter(function (x) { return /SA|google/i.test(x.lang + x.name); })[0] || v[0];
+        /* the owner asked for a female voice: known female voices first, never a known male one if there is a choice */
+        var fem = /zariyah|hoda|salma|laila|mariam|amira|amina|fatima|reem|female|samantha|zira|aria|jenny|karen|serena|victoria|google us english|google uk english female/i, male = /naayf|hamed|maged|tarik|shakir|\bmale\b|daniel|david|alex|fred|guy/i;
+        if (v.length) u.voice = v.filter(function (x) { return fem.test(x.name); })[0] || v.filter(function (x) { return !male.test(x.name) && /SA|google/i.test(x.lang + x.name); })[0] || v.filter(function (x) { return !male.test(x.name); })[0] || v[0];
         window.speechSynthesis.speak(u);
       } catch (e) {}
     }
