@@ -37,9 +37,14 @@ function doPost(e) {
   try {
     var body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     if (body.action === 'log') { writeLog(body); return json({ ok: true }); }
+    if (body.action === 'tts') {
+      if (!PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY')) return json({ ok: false, error: 'no_key' });
+      if (!underRateLimit()) return json({ ok: false, error: 'busy' });
+      return json(speakGemini(String(body.text || '').slice(0, 400)));
+    }
     if (body.action !== 'chat') return json({ ok: false, error: 'bad_action' });
     if (!PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY')) return json({ ok: false, error: 'no_key' });
-    var lang = body.lang === 'en' ? 'en' : 'ar';
+    var lang = body.lang === 'en' ? 'en' : body.lang === 'ur' ? 'ur' : 'ar';
     var msgs = (Array.isArray(body.messages) ? body.messages : []).slice(-10).map(function (m) {
       return { role: m && m.role === 'assistant' ? 'model' : 'user', parts: [{ text: String((m && m.text) || '').slice(0, 600) }] };
     }).filter(function (m) { return m.parts[0].text.trim(); });
@@ -51,6 +56,34 @@ function doPost(e) {
     console.error(err);
     return json({ ok: false, error: 'server' });
   }
+}
+
+/* Natural speech for the in-store kiosk: Gemini's text-to-speech with a female voice (the owner's choice).
+   Returns 24 kHz 16-bit mono PCM as base64; the kiosk wraps it in a WAV header and plays it.
+   Script properties: GEMINI_TTS_MODEL (default gemini-2.5-flash-preview-tts), GEMINI_TTS_VOICE (default Kore). */
+function speakGemini(text) {
+  if (!text.trim()) return { ok: false, error: 'no_text' };
+  var props = PropertiesService.getScriptProperties();
+  var key = props.getProperty('GEMINI_API_KEY');
+  var model = props.getProperty('GEMINI_TTS_MODEL') || 'gemini-2.5-flash-preview-tts';
+  var voice = props.getProperty('GEMINI_TTS_VOICE') || 'Kore';
+  var res = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
+    method: 'post',
+    contentType: 'application/json',
+    headers: { 'x-goog-api-key': key },
+    muteHttpExceptions: true,
+    payload: JSON.stringify({
+      contents: [{ parts: [{ text: 'Say warmly and naturally, like a friendly restaurant host: ' + text }] }],
+      generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } } }
+    })
+  });
+  if (res.getResponseCode() !== 200) { console.warn('TTS ' + res.getResponseCode() + ' ' + res.getContentText().slice(0, 300)); return { ok: false, error: 'tts_failed' }; }
+  var j = JSON.parse(res.getContentText());
+  var part = j && j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts && j.candidates[0].content.parts[0];
+  var data = part && part.inlineData && part.inlineData.data;
+  if (!data) return { ok: false, error: 'tts_failed' };
+  var rate = Number(((part.inlineData.mimeType || '').match(/rate=(\d+)/) || [])[1]) || 24000;
+  return { ok: true, audio: data, rate: rate };
 }
 
 function askGemini(system, contents) {
@@ -83,6 +116,8 @@ function systemPrompt(lang) {
     'You are "مساعد نهم" (Nahem Assistant), the customer chat assistant on nahem24.com for Nahem (نهم), a fresh burger and sandwich restaurant in Madinah, Saudi Arabia.',
     lang === 'en'
       ? 'Reply in English.'
+      : lang === 'ur'
+      ? 'Reply in Urdu (اردو), simply and warmly; many customers are pilgrims and visitors from Pakistan and India. Keep menu item names in English, as they appear on the menu.'
       : 'Reply in Arabic, in a warm, simple Saudi dialect. If the customer writes in English, you may reply in English; if they write in Urdu, reply in Urdu.',
     'Current time in Madinah: ' + now + '.',
     '',
