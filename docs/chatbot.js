@@ -640,11 +640,13 @@
       || (one.length && has(q, ['وريني', 'ورني', 'فرجيني', 'ابي اشوف', 'ابغى اشوف', 'خليني اشوف', 'show me', 'let me see'], true)));
     var vidW = !noMedia && (has(q, ['فيديو', 'الفيديو', 'مقطع', 'طريقه التحضير', 'كيف تسوون', 'كيف تسوونه', 'كيف تسوونها', 'كيف يتسوي', 'كيف تحضرون', 'كيف تحضرونه', 'كيف تصنعون', 'كيف ينطبخ', 'كيف يتجهز', 'كيف تجهزون', 'video', 'how is it made', 'how its made', 'how do you make', 'how you make', 'how are they made', 'behind the scenes'], true)
       || /(^|\s)how (is|are) (the |your )?.*\bmade($|\s)/.test(q)) && !has(q, ['متي', 'كم ياخذ', 'وقت', 'how long', 'when', 'time'], true);
-    var macroLines = function (i) {
+    var macroLines = function (i, short) {
       var n = nutri(i);
       if (!n) return '';
       var e = n.p * 4 + n.c * 4 + n.f * 9 || 1, pc = function (g, k) { return Math.round(g * k * 100 / e); };
       var fl = fullness(i);
+      if (short) return X('• ألياف ' + n.fib + ' جم · سكر ' + n.sug + ' جم · ملح ' + n.salt + ' جم', '• Fibre ' + n.fib + ' g · Sugar ' + n.sug + ' g · Salt ' + n.salt + ' g')
+        + (fl ? '\n🍽️ ' + X('الشبع: ', 'Fullness: ') + FULL[FULL[lang] ? lang : 'ar'][fl] + ' (' + fl + X(' من 5)', ' / 5)') : '');
       return '🔥 ' + n.kcal + X(' سعرة', ' kcal') + '\n'
         + X('• بروتين ' + n.p + ' جم (' + pc(n.p, 4) + '% من السعرات)\n• كربوهيدرات ' + n.c + ' جم (' + pc(n.c, 4) + '%)\n• دهون ' + n.f + ' جم (' + pc(n.f, 9) + '%)\n• ألياف ' + n.fib + ' جم · سكر ' + n.sug + ' جم · ملح ' + n.salt + ' جم',
           '• Protein ' + n.p + ' g (' + pc(n.p, 4) + '% of calories)\n• Carbs ' + n.c + ' g (' + pc(n.c, 4) + '%)\n• Fat ' + n.f + ' g (' + pc(n.f, 9) + '%)\n• Fibre ' + n.fib + ' g · Sugar ' + n.sug + ' g · Salt ' + n.salt + ' g')
@@ -802,8 +804,8 @@
         var withN = subject.filter(function (i) { return nutri(i); }).slice(0, 2);
         if (!withN.length) return R({ text: X('ما عندي قيم غذائية لهذا الصنف حاليًا 🙏', "I don't have nutrition values for that item yet 🙏"), buttons: [B.wa] });
         var focus = nutrient ? withN.map(function (i) { var n = nutri(i); return N(i) + ': ' + (nutrient === 'na' ? X('ملح ', 'salt ') + n.salt + X(' جم', ' g') : n[nutrient] + X(' جم ', ' g ') + NUTNAME[nutrient]); }).join('\n') + '\n\n' : '';
-        return R({ text: focus + withN.map(function (i) { return '📊 ' + X('القيم الغذائية لـ ', 'Nutrition: ') + N(i) + (CHOICE.indexOf(i.ar) !== -1 ? X(' (تختلف حسب اختيارك)', ' (depends on your choice)') : '') + '\n' + macroLines(i); }).join('\n\n') + noteFor(withN),
-          cards: withN, actions: [sheetAct(withN[0])], buttons: [B.order], chips: pairChips(withN[0], X) });
+        return R({ text: focus + withN.map(function (i) { return '📊 ' + X('القيم الغذائية لـ ', 'Nutrition: ') + N(i) + (CHOICE.indexOf(i.ar) !== -1 ? X(' (تختلف حسب اختيارك)', ' (depends on your choice)') : '') + '\n' + macroLines(i, withN.length === 1); }).join('\n\n') + noteFor(withN),
+          cards: withN, actions: [sheetAct(withN[0])], buttons: [B.order], chips: pairChips(withN[0], X), macro: withN.length === 1 ? withN[0] : null });
       }
       return R({ text: X('أقدر أعطيك القيم الغذائية الكاملة لأي صنف 📊: السعرات وتوزيعها، البروتين، الكربوهيدرات، الدهون، الألياف، السكر والملح، ومدى الشبع.\nاسألني مثلًا: «القيم الغذائية للزنجر»، أو اختار هدفك:', 'I can give you the full nutrition of any item 📊: calories and their breakdown, protein, carbs, fat, fibre, sugar, salt and how filling it is.\nAsk e.g. "nutrition of the zinger", or pick your goal:'),
         chips: X(['📊 القيم الغذائية للزنجر', '💪 بروتين عالي', '🥗 دايت', '💚 أكل صحي', '🚫 عندي حساسية'], ['📊 Zinger nutrition', '💪 High protein', '🥗 Diet', '💚 Healthy', '🚫 I have an allergy']) });
@@ -1090,7 +1092,7 @@
       var a = items[0], b = items.exactCount >= 2 || followUp ? items[1] : (items.second || items.near[0]);
       CTX.last = [a, b];
       var cheap = a.price <= b.price ? a : b, dear = cheap === a ? b : a;
-      return R({ text: X('مقارنة سريعة 👇\n' + (cheap.price === dear.price ? 'نفس السعر (' + cheap.price + ' ريال).' : N(cheap) + ' أرخص بـ ' + fmt(dear.price - cheap.price) + ' ريال.') + '\nإذا جوعك كبير خذ ' + N(dear) + '، وإذا تبي شي أخف أو أوفر خذ ' + N(cheap) + '.', 'Quick comparison 👇\n' + (cheap.price === dear.price ? 'Same price (' + cheap.price + ' SAR).' : N(cheap) + ' is ' + fmt(dear.price - cheap.price) + ' SAR cheaper.') + '\nVery hungry? Go for ' + N(dear) + '. Lighter or cheaper? ' + N(cheap) + '.'), cards: [a, b], buttons: [B.order] });
+      return R({ text: X('مقارنة سريعة 👇\n' + (cheap.price === dear.price ? 'نفس السعر (' + cheap.price + ' ريال).' : N(cheap) + ' أرخص بـ ' + fmt(dear.price - cheap.price) + ' ريال.') + '\nإذا جوعك كبير خذ ' + N(dear) + '، وإذا تبي شي أخف أو أوفر خذ ' + N(cheap) + '.', 'Quick comparison 👇\n' + (cheap.price === dear.price ? 'Same price (' + cheap.price + ' SAR).' : N(cheap) + ' is ' + fmt(dear.price - cheap.price) + ' SAR cheaper.') + '\nVery hungry? Go for ' + N(dear) + '. Lighter or cheaper? ' + N(cheap) + '.'), compare: [a, b], buttons: [B.order], chips: X(['القيم الغذائية ' + a.ar, 'أضف ' + a.ar], ['Nutrition of the ' + a.en, 'Add ' + a.en]) });
     }
     var meats = filters.filter(function (fl) { return fl.id === 'chicken' || fl.id === 'beef'; });
     if (items.length && (items.exact || followUp) && !(filters.length && !items.exact)) {
@@ -1359,6 +1361,7 @@
   var UR_TEXT = {"SAR": "ریال", "Order now": "ابھی آرڈر کریں", "WhatsApp orders": "واٹس ایپ آرڈر", "Hello, I have a question": "السلام علیکم، میرا ایک سوال ہے", "WhatsApp support": "واٹس ایپ سپورٹ", "Full menu": "مکمل مینو", "Menu image": "مینو کی تصویر", "Events calculator": "تقریبات کیلکولیٹر", "Register your company": "اپنی کمپنی رجسٹر کریں", "Google reviews": "گوگل ریویوز", "Type your question and I'm on it 😊": "اپنا سوال لکھیں، میں حاضر ہوں 😊", "Hey, welcome to Nahem 👋\nWhat are you craving today? I can suggest a meal, show the menu and prices, plan an order for a group, or build your order and send it to us on WhatsApp.": "السلام علیکم، نہم میں خوش آمدید 👋\nآج کیا کھانے کا دل ہے؟ میں کھانا تجویز کر سکتا ہوں، مینو اور قیمتیں دکھا سکتا ہوں، گروپ کا آرڈر بنا سکتا ہوں، یا آپ کا آرڈر تیار کر کے واٹس ایپ پر بھیج سکتا ہوں۔", "Great 👌 Anything else?": "بہت خوب 👌 اور کچھ؟", "No problem, I'm here if you need anything 🧡": "کوئی بات نہیں، کچھ چاہیے ہو تو میں یہیں ہوں 🧡", "I'm great, thanks 😊 Hungry? Tell me what you like and I'll suggest something.": "الحمدللہ، میں ٹھیک ہوں 😊 بھوک لگی ہے؟ بتائیں آپ کو کیا پسند ہے، میں کچھ تجویز کرتا ہوں۔", "You're welcome, enjoy your meal 😋 I'm here if you need anything else.": "کوئی بات نہیں، کھانے کا مزہ لیں 😋 کچھ اور چاہیے ہو تو میں یہیں ہوں۔", "Take care, see you at Nahem 🧡": "اللہ حافظ، نہم میں ملتے ہیں 🧡", "Happy to! Two quick questions 👌\nHow many people?": "ضرور! بس دو سوال 👌\nکتنے لوگ ہیں؟", "I'm Nahem's automated assistant 🤖 I answer instantly about the menu, prices and branches, and I can build your order. To talk to a person, our team is on WhatsApp.": "میں نہم کا خودکار اسسٹنٹ ہوں 🤖 مینو، قیمتوں اور برانچوں کے بارے میں فوراً جواب دیتا ہوں اور آپ کا آرڈر تیار کر سکتا ہوں۔ کسی انسان سے بات کرنے کے لیے ہماری ٹیم واٹس ایپ پر موجود ہے۔", "Why did the burger win the race? It was a double smash 😂\nWant to try the winner?": "برگر ریس کیوں جیت گیا؟ کیونکہ وہ ڈبل سماش تھا 😂\nجیتنے والا آزمائیں گے؟", "That made our day 🧡 We would love it if you shared that in a Google review. It really helps us.": "آپ کی بات سے دل خوش ہو گیا 🧡 اگر آپ گوگل پر ریویو دیں تو ہمیں بہت مدد ملے گی۔", "Your order is cleared 🧺 Add new items any time.": "آپ کا آرڈر صاف کر دیا گیا 🧺 جب چاہیں نئی چیزیں شامل کریں۔", "Your order 🛒": "آپ کا آرڈر 🛒", "Franchise application": "فرنچائز درخواست", "Franchise": "فرنچائز", "📋 Details & nutrition": "📋 تفصیل اور غذائیت", "Add to order": "آرڈر میں شامل کریں", "\n(From the Nahem kitchen's nutrition table; sugar and salt are estimates.)": "\n(نہم کچن کے غذائی جدول سے؛ چینی اور نمک اندازاً ہیں۔)", "\n(Sandwich figures are from the Nahem kitchen; meals and the rest are estimates.)": "\n(سینڈوچ کے اعداد نہم کچن سے ہیں؛ میلز اور باقی اندازاً ہیں۔)", "\n(Estimated values until the Nahem kitchen confirms them.)": "\n(اندازاً اعداد، جب تک نہم کچن تصدیق نہ کرے۔)", "\n⚠️ Based on the standard recipe. If you have an allergy, tell the cashier when you order and the kitchen will prepare your order to suit you.": "\n⚠️ معیاری ترکیب کے مطابق۔ اگر آپ کو الرجی ہے تو آرڈر کرتے وقت کیشیئر کو بتائیں، کچن آپ کے لیے مناسب طریقے سے تیار کرے گا۔", "protein": "پروٹین", "carbs": "کاربوہائیڈریٹ", "fat": "چکنائی", "fibre": "فائبر", "sugar": "چینی", "salt": "نمک", " kcal": " کیلوریز", "Fullness: ": "پیٹ بھرنا: ", " / 5)": " / 5)", "salt ": "نمک ", " g": " گرام", " g ": " گرام ", "💪 For your gym goals, these are our highest-protein items:": "💪 جم کے لیے، یہ ہمارے سب سے زیادہ پروٹین والے آئٹمز ہیں:", "🥗 For your diet: fewer calories, with protein to keep you full:": "🥗 ڈائٹ کے لیے: کم کیلوریز اور پیٹ بھرنے والا پروٹین:", "\n💡 Water or Saudi coffee instead of a soft drink saves 140 kcal\n💡 Ask for the sauce on the side\n💡 Add \"no fries\" in the order note if you do not want them": "\n💡 سافٹ ڈرنک کی جگہ پانی یا سعودی قہوہ لیں، 140 کیلوریز بچیں گی\n💡 ساس الگ سے منگوائیں\n💡 فرائز نہیں چاہییں تو آرڈر نوٹ میں لکھ دیں", "🥩 For low-carb or keto, our lowest-carb items:": "🥩 لو کارب یا کیٹو کے لیے، سب سے کم کاربوہائیڈریٹ والے آئٹمز:", "\n💡 Most of the carbs are in the bread and fries. Ask our team whether they can make yours without the bun.": "\n💡 زیادہ کاربز روٹی اور فرائز میں ہیں۔ ہماری ٹیم سے بغیر بن کے بنانے کا پوچھ لیں۔", "🩸 Our lowest-sugar items:": "🩸 سب سے کم چینی والے آئٹمز:", "\n💡 Choose water or Saudi coffee; skip the soft drink (36 g sugar) and desserts.\nThis is general information; follow your doctor's advice for your diet.": "\n💡 پانی یا سعودی قہوہ لیں؛ سافٹ ڈرنک (36 گرام چینی) اور میٹھے سے پرہیز کریں۔\nیہ عام معلومات ہیں؛ اپنی خوراک کے لیے ڈاکٹر کے مشورے پر عمل کریں۔", "🧂 Our lowest-salt items:": "🧂 سب سے کم نمک والے آئٹمز:", "\n💡 Sauces and fries add salt, so ask for them on the side.\nThis is general information; follow your doctor's advice for your diet.": "\n💡 ساس اور فرائز میں نمک زیادہ ہوتا ہے، انہیں الگ سے منگوائیں۔\nیہ عام معلومات ہیں؛ اپنی خوراک کے لیے ڈاکٹر کے مشورے پر عمل کریں۔", "💚 Our most balanced picks (more protein and fibre, less sugar and fat):": "💚 ہمارے سب سے متوازن آئٹمز (زیادہ پروٹین اور فائبر، کم چینی اور چکنائی):", "\n💡 Add a coleslaw instead of fries, and have water with your meal.": "\n💡 فرائز کی جگہ کول سلا لیں اور کھانے کے ساتھ پانی پئیں۔", "🎯 Based on the goal you mentioned (say \"just the tastiest\" for general picks):\n": "🎯 آپ کے بتائے ہوئے مقصد کے مطابق (عام تجاویز کے لیے \"just the tastiest\" کہیں):\n", "Sure! I'll match it to what you need 🎯 Which is closest to you?": "ضرور! آپ کی ضرورت کے مطابق بتاتا ہوں 🎯 آپ کے لیے کون سا سب سے قریب ہے؟", "No common allergens in the standard recipe.": "معیاری ترکیب میں کوئی عام الرجی والی چیز نہیں۔", "\nIt depends on the items you choose inside it.": "\nیہ اندر آپ کی منتخب کردہ چیزوں پر منحصر ہے۔", "Your safety comes first 🙏 What are you allergic to? I will show you the items without it in the standard recipe.": "آپ کی حفاظت سب سے پہلے 🙏 آپ کو کس چیز سے الرجی ہے؟ میں وہ آئٹمز دکھاؤں گا جن کی ترکیب میں وہ نہیں۔", "\nFries are cooked in their own fryer, separate from the fried chicken. Our bread-free choice is the Caesar Salad 🥗": "\nفرائز الگ فرائر میں تلے جاتے ہیں، فرائیڈ چکن سے الگ۔ بغیر روٹی والا انتخاب: سیزر سلاد 🥗", "\nIts allergens: ": "\nاس میں الرجی والی چیزیں: ", ", ": "، ", "\n⚠️ The Heisa Nahem contains peanuts and sesame, so avoid it and the Dessert Offer.": "\n⚠️ حیسہ نہم میں مونگ پھلی اور تل ہیں، اس سے اور ڈیزرٹ آفر سے پرہیز کریں۔", "I don't have nutrition values for that item yet 🙏": "اس آئٹم کی غذائی معلومات ابھی میرے پاس نہیں 🙏", "Nutrition: ": "غذائیت: ", " (depends on your choice)": " (آپ کے انتخاب پر منحصر)", "I can give you the full nutrition of any item 📊: calories and their breakdown, protein, carbs, fat, fibre, sugar, salt and how filling it is.\nAsk e.g. \"nutrition of the zinger\", or pick your goal:": "میں کسی بھی آئٹم کی مکمل غذائیت بتا سکتا ہوں 📊: کیلوریز اور ان کی تقسیم، پروٹین، کاربز، چکنائی، فائبر، چینی، نمک اور یہ کتنا پیٹ بھرتا ہے۔\nپوچھیں مثلاً \"زنگر کی غذائیت\"، یا اپنا مقصد چنیں:", "\nA full meal on its own 👌": "\nیہ اکیلا ہی مکمل کھانا ہے 👌", "\nRight for a normal appetite; with fries or a drink it is a full meal.": "\nعام بھوک کے لیے ٹھیک ہے؛ فرائز یا ڈرنک کے ساتھ مکمل کھانا بن جاتا ہے۔", "The most filling picks 🍽️\n": "سب سے زیادہ پیٹ بھرنے والے 🍽️\n", "Our fries are cooked in their own fryer, separate from the fried chicken 👌 You can also have them without seasoning.": "ہمارے فرائز الگ فرائر میں تلے جاتے ہیں، فرائیڈ چکن سے الگ 👌 آپ بغیر مسالے کے بھی لے سکتے ہیں۔", " (baked fresh every day)": " (روزانہ تازہ بیک)", "\nAllergens: ": "\nالرجی والی چیزیں: ", "\nNo milk, egg or sesame.": "\nدودھ، انڈا یا تل نہیں۔", "\n(It depends on what you choose)": "\n(آپ کے انتخاب پر منحصر)", "Which item would you like to see being made? 🎬": "کون سا آئٹم بنتے دیکھنا چاہیں گے؟ 🎬", "Which item would you like to see? 📸": "کون سا آئٹم دیکھنا چاہیں گے؟ 📸", "Video of ": "ویڈیو: ", "Photo of ": "تصویر: ", "For one person, these are my top picks 👇": "ایک شخص کے لیے یہ میری بہترین تجاویز ہیں 👇", "Here is the total 🧮\n": "یہ رہا حساب 🧮\n", "Add all to order": "سب آرڈر میں شامل کریں", "Added ": "شامل کر دیا: ", " and ": " اور ", " to your order ✅": " آپ کے آرڈر میں ✅", "We don't have a student discount right now 🙏 but you can use:\n": "ابھی طلبہ کے لیے کوئی رعایت نہیں 🙏 لیکن آپ یہ استعمال کر سکتے ہیں:\n", "Current Nahem offers 🔥\n": "نہم کی موجودہ آفرز 🔥\n", "\n• Available now: ": "\n• ابھی دستیاب: ", "\nOffers change; the latest is shown at the top of the site.": "\nآفرز بدلتی رہتی ہیں؛ تازہ ترین ویب سائٹ کے اوپر ہوتی ہے۔", "Join Nahem Club on WhatsApp and be the first to hear about offers and coupons 🧡": "واٹس ایپ پر نہم کلب میں شامل ہوں اور آفرز اور کوپنز سب سے پہلے پائیں 🧡", "Join Nahem Club": "نہم کلب میں شامل ہوں", "about ": "تقریباً ", "\n(Figures marked \"about\" are estimates; the others are from the Nahem kitchen.)": "\n(\"تقریباً\" والے اعداد اندازاً ہیں؛ باقی نہم کچن سے ہیں۔)", "Calories 🔥\n": "کیلوریز 🔥\n", "Our lightest items by calories 🥗\n": "کیلوریز کے لحاظ سے سب سے ہلکے آئٹمز 🥗\n", "\nAsk me about any item, e.g. \"calories in the zinger\".": "\nکسی بھی آئٹم کا پوچھیں، مثلاً \"زنگر کی کیلوریز\"۔", "\nThe available payment methods are shown on the ordering platform before you confirm.": "\nادائیگی کے طریقے آرڈر کی تصدیق سے پہلے پلیٹ فارم پر نظر آتے ہیں۔", "\nFor something lighter, try the salads or the tuna or falafel sandwich.": "\nہلکے کھانے کے لیے سلاد، ٹونا یا فلافل سینڈوچ آزمائیں۔", "We're not on that app right now 🙏 ": "ہم ابھی اس ایپ پر نہیں ہیں 🙏 ", "Nahem is currently only in Madinah (Al Qaswa and Al Ared) 📍\nIf you would like Nahem in your city, you can apply for a franchise 🤝": "نہم ابھی صرف مدینہ منورہ میں ہے (القصواء اور العریض) 📍\nاگر آپ اپنے شہر میں نہم چاہتے ہیں تو فرنچائز کے لیے درخواست دے سکتے ہیں 🤝", "• Burger Box (79 SAR) feeds about 4\n• Snack Box (49 SAR) feeds about 5\nTell me how many you are and I will work out the order 👌": "• برگر باکس (79 ریال) تقریباً 4 لوگوں کے لیے\n• سنیک باکس (49 ریال) تقریباً 5 لوگوں کے لیے\nبتائیں آپ کتنے لوگ ہیں، میں آرڈر بنا دوں گا 👌", "Nahem's most ordered 🏆": "نہم کے سب سے زیادہ آرڈر ہونے والے 🏆", "Complete meals 👌": "مکمل میلز 👌", "The best-priced picks at Nahem 💸": "نہم کے سب سے سستے آئٹمز 💸", "Our highest-priced items:": "ہمارے سب سے مہنگے آئٹمز:", "For a serious appetite 😤 the most filling picks:": "زبردست بھوک کے لیے 😤 سب سے زیادہ پیٹ بھرنے والے:", "Best value for money 👌": "قیمت کے لحاظ سے بہترین 👌", "These items match your question:": "یہ آئٹمز آپ کے سوال سے ملتے ہیں:", "We have both 👇 beef and chicken:": "دونوں موجود ہیں 👇 بیف اور چکن:", "I couldn't find one item with all of that, but these are the closest:": "ایسا ایک آئٹم نہیں ملا، لیکن یہ سب سے قریب ہیں:", "Did you mean one of these?": "کیا آپ کا مطلب ان میں سے کوئی ہے؟", "Nahem is with you 24 hours, and the food is fresh 🧡\n• Our bread is baked every day\n• Sauces are made fresh daily\n• Chicken and beef are fresh and prepared daily\n• Everything is halal, from local suppliers": "نہم 24 گھنٹے آپ کے ساتھ ہے، اور کھانا تازہ ہے 🧡\n• ہماری روٹی روزانہ بیک ہوتی ہے\n• ساس روزانہ تازہ بنتی ہے\n• چکن اور بیف تازہ اور روزانہ تیار\n• سب کچھ حلال، مقامی سپلائرز سے", "I didn't quite get that 🙏 Did you mean one of these?": "میں پوری طرح سمجھ نہیں سکا 🙏 کیا آپ کا مطلب ان میں سے کوئی ہے؟", "I didn't quite get that 🙏 Try asking another way, or pick one of these. You can also ask our team on WhatsApp:": "میں پوری طرح سمجھ نہیں سکا 🙏 دوسرے طریقے سے پوچھیں یا ان میں سے چنیں۔ آپ ہماری ٹیم سے واٹس ایپ پر بھی پوچھ سکتے ہیں:", "☕ Hot drinks": "☕ گرم مشروبات", "🌶️ For spice lovers": "🌶️ تیکھا پسند کرنے والوں کے لیے", "Our food is not spicy by itself; the heat comes from spicy sauce and jalapeño (medium to mild). You can add them to any sandwich for free 🌶️": "ہمارا کھانا خود تیکھا نہیں؛ تیکھا پن اسپائسی ساس اور ہالاپینو سے آتا ہے (درمیانہ سے ہلکا)۔ آپ انہیں کسی بھی سینڈوچ میں مفت شامل کر سکتے ہیں 🌶️", "🧊 Cold drinks": "🧊 ٹھنڈے مشروبات", "🍗 Chicken options": "🍗 چکن کے آئٹمز", "🥩 Beef options": "🥩 بیف کے آئٹمز", "🥗 Options without meat or chicken": "🥗 بغیر گوشت یا چکن کے", "Based on menu ingredients. To confirm how they are prepared, message us on WhatsApp.": "مینو کے اجزاء کے مطابق۔ تیاری کی تصدیق کے لیے واٹس ایپ کریں۔", "🥗 Lighter options": "🥗 ہلکے آئٹمز", "👧 Kids love these": "👧 بچوں کے پسندیدہ", "Our pick for kids: the Strips Meal 🍗": "بچوں کے لیے ہماری تجویز: Strips Meal 🍗", "🍪 Desserts": "🍪 میٹھا", "😋 Crispy": "😋 کرسپی", "🏆 One of Nahem's best sellers": "🏆 نہم کے سب سے زیادہ بکنے والوں میں سے", "Made for sharing 👥 tell me how many you are and I will work out how many boxes you need.": "شیئر کرنے کے لیے 👥 بتائیں آپ کتنے لوگ ہیں، میں بتا دوں گا کتنے باکس چاہییں۔", "Goes great with karak or tea, 4 SAR ☕": "کڑک یا چائے کے ساتھ مزیدار، 4 ریال ☕", "A Madinah classic; get it with a drink in the Dessert Offer for 12 SAR 🍮": "مدینہ کی روایتی مٹھائی؛ ڈیزرٹ آفر میں ڈرنک کے ساتھ 12 ریال 🍮", "Opening hours:\n": "اوقات:\n", "Open 24 hours": "24 گھنٹے کھلا", "\nI can't see your location, so open both maps to see which is closer 👇": "\nمیں آپ کا مقام نہیں دیکھ سکتا، دونوں نقشے کھول کر دیکھیں کون سی برانچ قریب ہے 👇", "\nPickup from the branch + ordering on the Nahem platform.": "\nبرانچ سے پک اپ + نہم پلیٹ فارم پر آرڈر۔", "Branch page": "برانچ کا صفحہ", " items · ": " آئٹمز · ", " SAR": " ریال", "\nPick a section and I will show its items and prices 👇": "\nکوئی حصہ چنیں، میں اس کے آئٹمز اور قیمتیں دکھاؤں گا 👇", "It's breakfast time ☀️": "ناشتے کا وقت ہے ☀️", "It's lunchtime 🍽️": "دوپہر کے کھانے کا وقت ہے 🍽️", "It's dinner time 🌆": "رات کے کھانے کا وقت ہے 🌆", "Up late and hungry? 🌙": "رات دیر تک جاگ رہے ہیں اور بھوک لگی ہے؟ 🌙", " here are my picks:": " یہ میری تجاویز ہیں:", "\nWith friends? The Burger Box (79) feeds 4 and the Snack Box (49) feeds 5 👥": "\nدوستوں کے ساتھ؟ برگر باکس (79) 4 لوگوں اور سنیک باکس (49) 5 لوگوں کے لیے 👥", "Try the Burger Box 😋": "برگر باکس آزمائیں 😋", "a best seller": "سب سے زیادہ بکنے والا", "for a bit of heat": "تھوڑے تیکھے پن کے لیے", "properly filling": "خوب پیٹ بھرنے والا", "a customer favourite": "گاہکوں کا پسندیدہ", "Add my pick": "میری تجویز شامل کریں", "Here is your suggested order 👇\n": "یہ رہا آپ کا تجویز کردہ آرڈر 👇\n", "Add this order": "یہ آرڈر شامل کریں", "A breakfast meal each ☀️": "ہر ایک کے لیے ناشتہ ☀️", "Light and quick ☕": "ہلکا اور جلدی ☕", "Total ": "کل ", "\nEach Breakfast Meal is two sandwiches of your choice + tea.": "\nہر Breakfast Meal میں آپ کی پسند کے دو سینڈوچ + چائے۔", "Add ": "شامل کریں: ", "Tell us your group size on WhatsApp and we will arrange it.": "واٹس ایپ پر اپنے گروپ کا سائز بتائیں، ہم انتظام کر دیں گے۔", "Individual meals 🍔": "الگ الگ میلز 🍔", "One sharing box 📦": "ایک شیئرنگ باکس 📦", "Burger plan 🍔": "برگر پلان 🍔", "Budget plan 💸": "بجٹ پلان 💸", "Mixed plan 🤝": "مکس پلان 🤝", " · about ": " · تقریباً ", " per person": " فی شخص", "\nEstimates depend on appetite; we confirm the final price on WhatsApp.": "\nاندازہ بھوک پر منحصر ہے؛ حتمی قیمت واٹس ایپ پر کنفرم کرتے ہیں۔", "The closest to your budget:": "آپ کے بجٹ کے سب سے قریب:", "\nSharing? The Snack Box (49) feeds 5 👥": "\nشیئر کر رہے ہیں؟ سنیک باکس (49) 5 لوگوں کے لیے 👥", "Add this meal to my order": "یہ کھانا میرے آرڈر میں شامل کریں", "We accept cash, card (mada) and Visa 💳": "ہم کیش، کارڈ (مدی) اور ویزا قبول کرتے ہیں 💳", "We deliver free within the Al Qaswa district, with a 20 SAR minimum order 🛵\nFor other areas, find us on HungerStation, Keeta, Ninja, The Chefs and Jahez.": "القصواء کے علاقے میں مفت ڈیلیوری، کم از کم آرڈر 20 ریال 🛵\nدوسرے علاقوں کے لیے ہم HungerStation، Keeta، Ninja، The Chefs اور Jahez پر ہیں۔", "Yes, both branches have seating 🪑 so you can eat in.": "جی ہاں، دونوں برانچوں میں بیٹھنے کی جگہ ہے 🪑", "Yes, both branches have parking 🚗": "جی ہاں، دونوں برانچوں پر پارکنگ ہے 🚗", "All our food is 100% halal ✅ and all our suppliers are local.": "ہمارا سارا کھانا 100% حلال ہے ✅ اور تمام سپلائرز مقامی ہیں۔", "Your order is usually ready in about 10 minutes ⏱️": "آپ کا آرڈر عموماً تقریباً 10 منٹ میں تیار ہو جاتا ہے ⏱️", "The whole menu is available 24 hours, breakfast included 🍳 You can order the Breakfast Meal any time.": "پورا مینو 24 گھنٹے دستیاب ہے، ناشتہ بھی 🍳 آپ کسی بھی وقت Breakfast Meal منگوا سکتے ہیں۔", "Yes, all our prices include VAT ✅": "جی ہاں، تمام قیمتوں میں VAT شامل ہے ✅", "You can customise your order for free 👌\n• No cheese, no salad or no sauce\n• Fries without seasoning\n• Add caramelised onion, jalapeño or spicy sauce\nPaid extras: an extra patty on any burger for 6 SAR, extra cheese for 1 SAR. Side sauces are 2 SAR.": "آپ اپنا آرڈر مفت بدل سکتے ہیں 👌\n• بغیر پنیر، بغیر سلاد یا بغیر ساس\n• بغیر مسالے کے فرائز\n• کیریملائزڈ پیاز، ہالاپینو یا اسپائسی ساس شامل کریں\nاضافی قیمت: کسی بھی برگر میں اضافی پیٹی 6 ریال، اضافی پنیر 1 ریال۔ الگ ساس 2 ریال۔", "Gluten (wheat)": "گلوٹین (گندم)", "Milk / dairy": "دودھ / ڈیری", "Egg": "انڈا", "Sesame": "تل", "Fish": "مچھلی", "Soy": "سویا", "Mustard": "رائی (مسٹرڈ)", "Nuts & peanuts": "گری دار میوے اور مونگ پھلی", "A light snack": "ہلکا اسنیک", "A light meal": "ہلکا کھانا", "Satisfying": "پیٹ بھرنے والا", "Very filling": "خوب پیٹ بھرنے والا", "A big, very filling meal": "بڑا، بہت پیٹ بھرنے والا کھانا", "Breakfast": "ناشتہ", "Burgers": "برگر", "Nahem Specials": "نہم اسپیشل", "Boxes": "باکس", "Sides & desserts": "سائیڈز اور میٹھا", "Drinks": "مشروبات", "Sauces": "ساس", "What do you recommend?": "آپ کیا تجویز کرتے ہیں؟", "Menu & prices": "مینو اور قیمتیں", "Where are you?": "آپ کہاں ہیں؟", "Offers": "آفرز", "Recommend something": "کچھ تجویز کریں", "View order": "آرڈر دیکھیں", "Chicken": "چکن", "Beef": "بیف", "Best sellers": "سب سے زیادہ بکنے والے", "Cheapest": "سب سے سستا", "For a group": "گروپ کے لیے", "What can you do?": "آپ کیا کر سکتے ہیں؟", "We are 6 people": "ہم 6 لوگ ہیں", "I have 25 SAR": "میرے پاس 25 ریال ہیں", "Add a Burger Box": "برگر باکس شامل کریں", "Chicken 🍗": "چکن 🍗", "Beef 🥩": "بیف 🥩", "A mix 🤝": "دونوں 🤝", "Spicy": "تیکھا", "💪 High protein": "💪 زیادہ پروٹین", "🥗 Diet": "🥗 ڈائٹ", "💚 Healthy": "💚 صحت مند", "🚫 I have an allergy": "🚫 مجھے الرجی ہے", "📊 Nutrition facts": "📊 غذائی معلومات", "📊 Zinger nutrition": "📊 زنگر کی غذائیت", "💪 High protein for the gym": "💪 جم کے لیے زیادہ پروٹین", "🥗 Diet, fewer calories": "🥗 ڈائٹ، کم کیلوریز", "💚 Healthy and balanced": "💚 صحت مند اور متوازن", "🍽️ Very hungry": "🍽️ بہت بھوک لگی ہے", "🩸 Less sugar": "🩸 کم چینی", "😋 Just the tastiest": "😋 بس سب سے مزیدار", "Gluten allergy": "گلوٹین الرجی", "Lactose intolerance": "لییکٹوز الرجی", "Egg allergy": "انڈے کی الرجی", "Sesame allergy": "تل کی الرجی", "Fish allergy": "مچھلی کی الرجی", "Nut allergy": "میوے کی الرجی", "Free add-ons": "مفت اضافے", "What goes with it?": "اس کے ساتھ کیا اچھا لگے گا؟", "Something cheaper": "کچھ سستا", "We are 8": "ہم 8 ہیں", "We are 12": "ہم 12 ہیں", "How many does it feed?": "کتنے لوگوں کے لیے کافی ہے؟", "We are 10": "ہم 10 ہیں", "We are 25": "ہم 25 ہیں", "We are 50": "ہم 50 ہیں", "We are 15": "ہم 15 ہیں", "We are 30": "ہم 30 ہیں", "How do I use the code?": "کوڈ کیسے استعمال کروں؟", "Company offer": "کمپنی آفر", "Under 400 kcal": "400 کیلوریز سے کم", "Calories in the zinger": "زنگر کی کیلوریز", "Burger Box calories": "برگر باکس کی کیلوریز", "Opening hours": "اوقات", "How to order": "آرڈر کیسے کریں", "Compare them": "ان کا موازنہ کریں", "For one person": "ایک شخص کے لیے", "Cheapest full meal": "سب سے سستا مکمل کھانا", "I have 20 SAR": "میرے پاس 20 ریال ہیں", "What do you recommend now?": "ابھی کیا تجویز کرتے ہیں؟", "Pick again": "دوبارہ چنیں", "Change the number": "تعداد بدلیں", "Talk to a person": "کسی انسان سے بات کریں", "What's in the Burger Box?": "برگر باکس میں کیا ہے؟", "Lightest items": "سب سے ہلکے آئٹمز", "Help me order": "آرڈر کرنے میں مدد کریں", "🎯 Choose for my goal": "🎯 میرے مقصد کے مطابق چنیں", "Help me choose for my goal": "میرے مقصد کے مطابق چننے میں مدد کریں", "We are 4 people": "ہم 4 لوگ ہیں", "Breakfast menu": "ناشتے کا مینو", "Surprise me": "آپ خود چن لیں", "Late-night food 🌙": "رات گئے کا کھانا 🌙", "🔁 Order my last order again": "🔁 میرا پچھلا آرڈر دوبارہ", "Added ✅": "شامل کر دیا ✅"};
   var UR_IN = {"السلام علیکم": "hello", "اسلام علیکم": "hello", "سلام": "hello", "ہیلو": "hello", "شکریہ": "thanks", "جزاک اللہ": "thanks", "خدا حافظ": "bye", "اللہ حافظ": "bye", "آپ کیسے ہیں": "how are you", "کیا حال ہے": "how are you", "آپ کیا کر سکتے ہیں": "what can you do", "کیا تجویز کرتے ہیں": "what do you recommend", "کیا تجویز": "recommend", "کیا لوں": "what should i get", "کیا کھاؤں": "what should i eat", "کیا منگواؤں": "what should i get", "سب سے زیادہ بکنے والے": "best sellers", "سب سے زیادہ بکنے": "best seller", "سب سے زیادہ": "most", "سب سے کم": "lowest", "سب سے سستا": "cheapest", "سب سے مزیدار": "tastiest", "بس سب سے مزیدار": "just the tastiest", "مکمل مینو": "full menu", "مینو اور قیمتیں": "menu prices", "کتنے کا": "how much", "کتنے کی": "how much", "کتنی قیمت": "how much", "کتنے لوگوں": "how many people", "میرے پاس": "i have", "ہم": "we are", "مجھے چاہیے": "i want", "چاہیے": "i want", "شامل کریں": "add", "شامل کرو": "add", "ڈال دیں": "add", "دکھائیں": "show me", "دکھاؤ": "show me", "بتائیں": "tell me", "آپ کہاں ہیں": "where are you", "کہاں ہیں": "where", "کب کھلتے": "when open", "کب بند": "when close", "کھلے ہیں": "open", "کھلا ہے": "open", "زیادہ پروٹین": "high protein", "کم چینی": "less sugar", "کم کیلوریز": "low calorie", "کم کارب": "low carb", "وزن کم": "lose weight", "صحت مند": "healthy", "مجھے الرجی ہے": "i have an allergy", "غذائی معلومات": "nutrition facts", "مفت اضافے": "free add ons", "کسی انسان سے بات": "talk to a person", "پہلی بار": "first time", "ایک شخص": "one person", "گروپ کے لیے": "for a group", "آرڈر دیکھیں": "view order", "کچھ تجویز کریں": "recommend something", "کچھ سستا": "something cheaper", "ان کا موازنہ": "compare them", "تعداد بدلیں": "change the number", "دوبارہ چنیں": "pick again", "کیا ہے": "what is", "میں کیا ہے": "whats in", "کیسے": "how", "کہاں": "where", "کب": "when", "کتنے": "how much", "کتنا": "how much", "کتنی": "how much", "کونسا": "which", "کون سا": "which", "کیوں": "why", "مینو": "menu", "مینیو": "menu", "قیمت": "price", "قیمتیں": "prices", "ریٹ": "price", "ریال": "riyal", "سستا": "cheap", "مہنگا": "expensive", "برگر": "burger", "زنگر": "zinger", "چکن": "chicken", "مرغی": "chicken", "گوشت": "beef", "بیف": "beef", "فرائز": "fries", "چپس": "fries", "سلاد": "salad", "سیزر": "caesar", "ناشتہ": "breakfast", "ناشتے": "breakfast", "کھانا": "food", "ڈرنک": "drink", "مشروب": "drink", "مشروبات": "drinks", "پانی": "water", "چائے": "tea", "کافی": "coffee", "قہوہ": "coffee", "کڑک": "karak", "میٹھا": "dessert", "میٹھے": "dessert", "میٹھی": "dessert", "ڈیزرٹ": "dessert", "کوکیز": "cookies", "ساس": "sauce", "چٹنی": "sauce", "ڈائنامائٹ": "dynamite", "باکس": "box", "کومبو": "combo", "سینڈوچ": "sandwich", "ریپ": "wrap", "ٹوئسٹر": "twister", "فلافل": "falafel", "ٹونا": "tuna", "انڈا": "egg", "انڈے": "egg", "پنیر": "cheese", "اسٹرپس": "strips", "ڈونر": "doner", "فاہیتا": "fajita", "سماش": "smash", "ڈبل": "double", "حیسہ": "heisa", "تیکھا": "spicy", "تیکھی": "spicy", "تیکھے": "spicy", "مرچ": "spicy", "مرچیں": "spicy", "مسالہ دار": "spicy", "حلال": "halal", "ڈائٹ": "diet", "ڈائیٹ": "diet", "جم": "gym", "پروٹین": "protein", "کیلوریز": "calories", "کیلوری": "calories", "الرجی": "allergy", "گلوٹین": "gluten", "دودھ": "milk", "لییکٹوز": "lactose", "مونگ پھلی": "peanuts", "میوے": "nuts", "تل": "sesame", "شوگر": "diabetic", "ذیابیطس": "diabetic", "بچے": "kids", "بچوں": "kids", "بھوک": "hungry", "بھوکا": "hungry", "بہترین": "best", "مشہور": "popular", "غذائیت": "nutrition", "اجزاء": "ingredients", "تصویر": "photo", "ویڈیو": "video", "پیٹ بھرنے": "filling", "ہلکا": "light", "برانچ": "branch", "برانچیں": "branches", "شاخ": "branch", "پتہ": "address", "لوکیشن": "location", "اوقات": "hours", "ٹائم": "hours", "ڈیلیوری": "delivery", "ڈلیوری": "delivery", "آرڈر": "order", "ادائیگی": "payment", "پیمنٹ": "payment", "کارڈ": "card", "کیش": "cash", "نقد": "cash", "پارکنگ": "parking", "بیٹھنے": "seating", "رابطہ": "contact", "نمبر": "number", "واٹس ایپ": "whatsapp", "شکایت": "complaint", "آفر": "offers", "آفرز": "offers", "رعایت": "discount", "ڈسکاؤنٹ": "discount", "تجویز": "recommend", "مشورہ": "recommend", "لوگ": "people", "افراد": "people", "آدمی": "people", "ٹوکری": "cart", "کارٹ": "cart", "ٹیکس": "vat", "رمضان": "ramadan", "عید": "eid", "اردو": "urdu", "انگلش": "english", "انگریزی": "english", "عربی": "arabic", "اور": "and", "یا": "or", "دونوں": "both", "کیا": "", "ہے": "", "ہیں": "", "کے": "", "کی": "", "کا": "", "میں": "", "سے": "", "کو": "", "پر": "", "بھی": "", "ہو": "", "ہوں": "", "آپ": "", "مجھے": "", "لیے": "", "ابھی": "now", "کوئی": "", "یہ": "", "وہ": ""};
   var UR_RULES = [
+    [/^• Fibre ([\d.]+) g · Sugar ([\d.]+) g · Salt ([\d.]+) g$/, '• فائبر $1 گرام · چینی $2 گرام · نمک $3 گرام'],
     [/^We are (\d+)$/, 'ہم $1 ہیں'], [/^We are (\d+) people$/, 'ہم $1 لوگ ہیں'], [/^I have (\d+) SAR$/, 'میرے پاس $1 ریال ہیں'],
     [/^Got it, (\d+) (?:person|people) 👌 What do you prefer\?$/, 'ٹھیک ہے، $1 لوگ 👌 آپ کیا پسند کریں گے؟'],
     [/^Removed (.+) from your order ✅$/, '$1 آپ کے آرڈر سے ہٹا دیا گیا ✅'],
@@ -1714,6 +1717,42 @@
     '.ticket .qr{background:#fff;padding:10px;border-radius:12px}',
     '.ticket .qr img,.ticket .qr canvas{display:block;width:220px;height:220px}',
     '.ticket ol{margin:0;padding-inline-start:22px;text-align:start;font-size:17px;line-height:1.6}',
+    /* answers laid out as a heading, lists, tips, warnings and notes */
+    '.rt{display:flex;flex-direction:column;gap:6px;white-space:normal}',
+    '.rt p{margin:0}',
+    '.rt .lead{font-weight:700}',
+    '.rt ul{margin:0;padding-inline-start:20px;display:flex;flex-direction:column;gap:3px}',
+    '.rt li::marker{color:var(--o)}',
+    '.rt .sub{font-weight:700;margin-top:4px}',
+    '.rt .ind{padding-inline-start:16px;color:var(--mut);font-size:13.5px;font-variant-numeric:tabular-nums}',
+    '.rt .tip{background:var(--bg);border-radius:12px;padding:7px 11px;font-size:13.5px}',
+    '.rt .warn2{background:#fff4e5;color:#7a4300;border-radius:12px;padding:7px 11px;font-size:13px}',
+    '@media (prefers-color-scheme:dark){.rt .warn2{background:#3a2a12;color:#ffd9a0}}',
+    '.rt .note{font-size:12px;color:var(--mut)}',
+    '.kiosk .rt .ind,.kiosk .rt .tip{font-size:18px}.kiosk .rt .warn2,.kiosk .rt .note{font-size:16px}',
+    /* in-chat nutrition chart and side-by-side comparison */
+    '.mini{margin-top:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;white-space:normal}',
+    '.mini .kc{margin-bottom:8px}.mini .kc b{font-size:24px}',
+    '.cmp{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;white-space:normal}',
+    '.cmp>div{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:8px;display:flex;flex-direction:column;gap:6px;cursor:pointer;min-width:0}',
+    '.cmp>div:hover{border-color:var(--o)}',
+    '.cmp img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;background:var(--os)}',
+    '.cmp b{font-size:13.5px;line-height:1.3}',
+    '.cmp em{font-style:normal;font-weight:800;color:var(--o2);font-size:13.5px}',
+    '.cmp .win{font-size:11.5px;font-weight:800;color:var(--ok)}',
+    '.cmp .bar{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--mut)}',
+    '.cmp .bar i{display:block;height:7px;border-radius:999px;background:var(--o);min-width:4px}',
+    /* speaking: rings around the mic; basket bump; confetti */
+    '.mic{position:relative}',
+    '.speaking .mic::before,.speaking .mic::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid var(--o);animation:ring 1.5s ease-out infinite;pointer-events:none}',
+    '.speaking .mic::after{animation-delay:.75s}',
+    '@keyframes ring{from{transform:scale(.92);opacity:.9}to{transform:scale(1.7);opacity:0}}',
+    '.bump{animation:bump .45s ease-out}',
+    '@keyframes bump{35%{transform:scale(1.18)}}',
+    '.confetti{position:fixed;inset:0;pointer-events:none;z-index:2147483500;overflow:hidden}',
+    '.confetti i{position:absolute;top:-12px;width:9px;height:14px;border-radius:2px;animation:fall 1.9s cubic-bezier(.2,.6,.4,1) forwards}',
+    '@keyframes fall{to{transform:translateY(105vh) rotate(540deg);opacity:.2}}',
+    '@media (prefers-reduced-motion:no-preference){.rt .in{animation:rtin .38s ease-out both}@keyframes rtin{from{opacity:0;transform:translateY(5px)}}.attract .av{animation:breathe 3.2s ease-in-out infinite}@keyframes breathe{50%{box-shadow:0 0 0 24px rgba(255,255,255,.1)}}}',
     'button:focus-visible,a:focus-visible{outline:2px solid var(--o);outline-offset:2px}',
     'input:focus-visible{outline:none;box-shadow:0 0 0 3px var(--os)}',
     '@media (prefers-reduced-motion:no-preference){.row{animation:in .22s ease-out}.panel:not([hidden]){animation:pop .2s ease-out}.tease:not([hidden]){animation:in .3s ease-out}@keyframes in{from{opacity:0;transform:translateY(6px)}}@keyframes pop{from{opacity:0;transform:translateY(10px) scale(.98)}}}'
@@ -1948,6 +1987,7 @@
       if (row) row.qty = Math.min(99, row.qty + qty); else cart.items.push({ ar: it.ar, en: it.en, price: it.price, img: it.img || '', qty: qty });
       track('nahem_chat_add_to_cart', { item: it.ar, qty: qty });
       cartChanged();
+      [bar, fabCnt].forEach(function (x) { x.classList.remove('bump'); void x.offsetWidth; x.classList.add('bump'); });
     }
     function renderBar() {
       var n = cartCount();
@@ -2024,6 +2064,7 @@
       waBtn.onclick = function (e) {
         if (!branch) { e.preventDefault(); br.classList.remove('need'); void br.offsetWidth; br.classList.add('need'); note.textContent = t.pickBranch; return; }
         track('nahem_chat_whatsapp_order', { total: cartTotal(), items: cartCount(), branch: cart.branch });
+        confetti();
         try { localStorage.setItem('nahem-chat-last-order', JSON.stringify({ items: cart.items, branch: cart.branch, at: Date.now() })); } catch (err) {}
         report('order', { q: cart.items.map(function (i) { return i.qty + 'x ' + i.ar; }).join(', '), total: cartTotal(), branch: cart.branch });
       };
@@ -2192,6 +2233,7 @@
       var url = wa(d.settings.whatsapp, UI[staff].kWa(no, b ? (staff === 'en' ? b.en : b.ar) : '', staffLines, cartTotal()));
       report('order', { q: cart.items.map(function (i) { return i.qty + 'x ' + i.ar; }).join(', '), total: cartTotal(), branch: cart.branch, kiosk: no });
       track('nahem_chat_kiosk_order', { total: cartTotal(), items: cartCount(), branch: cart.branch });
+      confetti();
       botSay({ text: t.kTicket + '\n' + lines.join('\n') + '\n' + t.total + ': ' + cartTotal() + ' ' + t.sar, ticket: { no: no, url: url, lang: lang }, lang: lang });
     }
     /* ---------- speaking (kiosk) ----------
@@ -2225,11 +2267,14 @@
       window.speechSynthesis.cancel();
       var voice = pickVoice();
       if (!voice && lang === 'ur') return;   /* no Urdu voice on this device: an Arabic voice cannot read Urdu well */
-      text.split(/(?<=[.!?؟،])\s+/).reduce(function (out, part) {
+      var chunks = text.split(/(?<=[.!?؟،])\s+/).reduce(function (out, part) {
         if (out.length && (out[out.length - 1] + ' ' + part).length < 160) out[out.length - 1] += ' ' + part; else out.push(part);
         return out;
-      }, []).forEach(function (chunk) {
+      }, []);
+      chunks.forEach(function (chunk, k) {
         var u = new SpeechSynthesisUtterance(chunk);
+        if (k === 0) u.onstart = function () { speaking(true); };
+        if (k === chunks.length - 1) { u.onend = function () { speaking(false); }; u.onerror = function () { speaking(false); }; }
         u.lang = VOICE_LANG[lang] || 'ar-SA'; u.rate = lang === 'en' ? 1 : 0.95; u.pitch = 1.05;
         if (voice) u.voice = voice;
         window.speechSynthesis.speak(u);
@@ -2261,11 +2306,13 @@
           if (!j || !j.ok || !j.audio) { if (j && /no_key|bad_action/.test(j.error || '')) cloudOff = true; throw new Error('tts'); }
           if (gaveUp || my !== speakSeq) return;
           player = new Audio(URL.createObjectURL(pcmToWav(j.audio, j.rate || 24000)));
+          player.onplay = function () { speaking(true); }; player.onended = player.onerror = function () { speaking(false); };
           player.play().catch(function () { speakDevice(say); });
         })
         .catch(function () { clearTimeout(timer); if (!gaveUp && my === speakSeq) speakDevice(say); });
     }
-    function hush() { speakSeq++; try { if (player) { player.pause(); player = null; } if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) {} }
+    function speaking(on) { wrap.classList.toggle('speaking', !!on); }
+    function hush() { speaking(false); speakSeq++; try { if (player) { player.pause(); player = null; } if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) {} }
     var idleAt = Date.now(), stillTimer = null, carTimer = null;
     function showAttract() {
       var t = T(), d = liveData();
@@ -2336,8 +2383,10 @@
       var row = el('div', 'row ' + (who === 'me' ? 'me' : 'bot'));
       if (who !== 'me') { var last = log.lastElementChild; row.appendChild(last && last.classList.contains('bot') ? el('div', 'sp') : avatar()); }
       var m = el('div', 'm'); m.setAttribute('dir', 'auto');
-      m.appendChild(document.createTextNode(r.text || ''));
       var rl = r.lang || lang, t = UI[rl];
+      m.appendChild(who === 'me' ? document.createTextNode(r.text || '') : rich(r.text || '', live));
+      if (r.macro) m.appendChild(macroEl(r.macro, rl));
+      if (r.compare && r.compare.length === 2) m.appendChild(compareEl(r.compare, rl));
       if (r.cards && r.cards.length) {
         var cards = el('div', 'cards'); cards.setAttribute('dir', t.dir);
         r.cards.forEach(function (i) {
@@ -2399,6 +2448,80 @@
       }
       log.appendChild(row); scroll();
       return row;
+    }
+    /* an answer as a short heading, bullet lists, plan sections, tips, warnings and small notes; lines appear one after another */
+    function rich(text, animate) {
+      var box = el('div', 'rt'), lines = String(text).split('\n'), list = null, n = 0;
+      var put = function (node) { if (animate) { node.classList.add('in'); node.style.animationDelay = Math.min(n * 80, 1100) + 'ms'; } n++; box.appendChild(node); return node; };
+      lines.forEach(function (ln, i) {
+        var tx = ln.trim();
+        if (!tx) { list = null; return; }
+        if (tx.charAt(0) === '•') {
+          if (!list) list = put(el('ul'));
+          list.appendChild(el('li')).textContent = tx.replace(/^•\s*/, '');
+          return;
+        }
+        list = null;
+        if (tx.charAt(0) === '▸') { put(el('div', 'sub')).textContent = tx.replace(/^▸\s*/, ''); return; }
+        if (/^\s{2,}/.test(ln)) { put(el('div', 'ind')).textContent = tx; return; }
+        if (/^💡/.test(tx)) { put(el('div', 'tip')).textContent = tx; return; }
+        if (/^⚠️/.test(tx)) { put(el('div', 'warn2')).textContent = tx; return; }
+        if (/^\(.*\)$/.test(tx)) { put(el('div', 'note')).textContent = tx.slice(1, -1); return; }
+        var p = el('p'); p.textContent = tx;
+        if (i === 0 && lines.length > 1 && tx.length <= 72) p.className = 'lead';
+        put(p);
+      });
+      return box;
+    }
+    /* calories and the protein / carbs / fat split, as a small chart inside the answer */
+    function macroEl(it0, rl) {
+      var it = liveData().items.filter(function (i) { return i.ar === it0.ar; })[0] || it0, n = nutri(it), t = UI[rl] || T();
+      var box = el('div', 'mini');
+      if (!n) return box;
+      var kc = el('div', 'kc'); kc.append(el('b', '', String(n.kcal)), el('span', '', t.kcalOf(Math.round(n.kcal * 100 / DV.kcal))));
+      var e = n.p * 4 + n.c * 4 + n.f * 9 || 1, cols = { p: '#16a34a', c: '#f59e0b', f: '#e4560a' }, stack = el('div', 'stack'), leg = el('div', 'leg');
+      [['p', n.p, 4, t.prot], ['c', n.c, 4, t.carb], ['f', n.f, 9, t.fat]].forEach(function (x) {
+        var pc = Math.round(x[1] * x[2] * 100 / e), bar = el('i'), cell = el('div'), lab = el('small'), dot = el('i');
+        bar.style.width = pc + '%'; bar.style.background = cols[x[0]]; stack.appendChild(bar);
+        dot.style.background = cols[x[0]]; lab.append(dot, document.createTextNode(x[3] + ' · ' + pc + '%'));
+        cell.append(el('b', '', x[1] + ' ' + t.g), lab); leg.appendChild(cell);
+      });
+      box.append(kc, stack, leg);
+      box.style.cursor = 'pointer'; box.onclick = function () { openSheet(it); };
+      return box;
+    }
+    /* two items side by side: photo, price, calories and protein, with the better value marked */
+    function compareEl(pair, rl) {
+      var d = liveData(), t = UI[rl] || T(), box = el('div', 'cmp');
+      var items = pair.map(function (x) { return d.items.filter(function (i) { return i.ar === x.ar; })[0] || x; });
+      var ns = items.map(nutri), maxP = Math.max.apply(null, ns.map(function (n) { return n ? n.p : 0; })) || 1, maxK = Math.max.apply(null, ns.map(function (n) { return n ? n.kcal : 0; })) || 1;
+      items.forEach(function (it, k) {
+        var n = ns[k], c = el('div'), img = el('img'); img.alt = ''; img.src = bigPhoto(it) || photo(it);
+        img.onerror = function () { if (photo(it) && img.src.indexOf(OPT.thumbs) === -1) img.src = photo(it); else img.remove(); };
+        c.append(img, el('b', '', rl !== 'ar' ? it.en : it.ar), el('em', '', it.price + ' ' + t.sar));
+        var other = items[1 - k];
+        if (it.price < other.price) c.appendChild(el('span', 'win', '✓ ' + (rl === 'ar' ? 'أرخص' : rl === 'ur' ? 'سستا' : 'Cheaper')));
+        if (n) {
+          [[t.prot, n.p, maxP, n.p + ' ' + t.g], [rl === 'ar' ? 'سعرات' : rl === 'ur' ? 'کیلوریز' : 'kcal', n.kcal, maxK, String(n.kcal)]].forEach(function (b) {
+            var row = el('div', 'bar'), bar = el('i'); bar.style.width = Math.round(b[1] * 100 / b[2]) + '%';
+            row.append(el('span', '', b[0] + ' ' + b[3]), bar); c.appendChild(row);
+          });
+        }
+        c.onclick = function () { openSheet(it); };
+        box.appendChild(c);
+      });
+      return box;
+    }
+    function confetti() {
+      try { if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return; } catch (e) {}
+      var box = el('div', 'confetti'), cols = ['#ff6b1a', '#ffb703', '#16a34a', '#e4560a', '#ffffff', '#fb8500'];
+      for (var k = 0; k < 46; k++) {
+        var c = el('i'); c.style.left = Math.random() * 100 + '%'; c.style.background = cols[k % cols.length];
+        c.style.animationDelay = Math.random() * 0.5 + 's'; c.style.transform = 'rotate(' + Math.random() * 360 + 'deg)';
+        box.appendChild(c);
+      }
+      wrap.appendChild(box);
+      setTimeout(function () { box.remove(); }, 2700);
     }
     function feedback(r, t) {
       var fb = el('div', 'fb'), up = el('button', '', '👍'), down = el('button', '', '👎');
